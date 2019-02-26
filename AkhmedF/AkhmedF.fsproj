@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Romanchuk.AkhmedF</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AkhmedF.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="robocode">
+      <HintPath>..\..\..\robocode\libs\robocode.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
