@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-    <OutputType>Library</OutputType>
-    <AssemblyName>Romanchuk.AkhmedF</AssemblyName>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Romanchuk.AkhmedFuckir</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="AkhmedF.fs" />
+    <Compile Include="Helper.fs" />
+    <Compile Include="Library.fs" />
   </ItemGroup>
 
   <ItemGroup>
