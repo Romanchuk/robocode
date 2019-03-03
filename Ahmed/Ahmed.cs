@@ -11,11 +11,7 @@ namespace Romanchuk
 {
     public class Ahmed : AdvancedRobot
     {
-        private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
-        private IEnumerable<ScannedRobotEvent> liveEnemies => enemies
-            .Where(e => e.Value.Energy > 0)
-            .Where(e => e.Value.Time < Time - 3) // ignore 3 turn old enemies detections, they must be already dead
-            .Select(d => d.Value);
+        private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();;
 
         override public void Run() {
             IsAdjustGunForRobotTurn = true;
@@ -28,15 +24,22 @@ namespace Romanchuk
                 ChangeColor(ref colorIteration);
                 SetTurnRadarRight(180.0);
 
-                var target = liveEnemies.OrderBy(e => e.Energy).ThenBy(e => e.Distance).FirstOrDefault();
+                var target = enemies
+                    .Where(e => e.Value.Energy > 0)
+                    .Where(e => e.Value.Time < Time - 2) // ignore 3 turn old enemies detections, they must be already dead
+                    .Select(d => d.Value)
+                    .OrderBy(e => e.Energy)
+                    .ThenBy(e => e.Distance)
+                    .FirstOrDefault();
                 if (target != null)
                 {
                     var normAbsBearing = HeadingRadians + target.BearingRadians;                    
                     Debug.WriteLine($"Enemy ({target.Name}) Abs Bearing Norm: " + normAbsBearing);
                     Debug.WriteLine("Gun Heading: " + GunHeadingRadians);
-                    var b = Math.Abs(Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians));
+                    var b = Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
                     Debug.WriteLine("Radians: " + b);
-
+                    SetTurnGunRightRadians(b);
+                    /*
                     if (GunHeadingRadians > normAbsBearing)
                     {
                         SetTurnGunLeftRadians(b);
@@ -44,7 +47,7 @@ namespace Romanchuk
                     else
                     {
                         SetTurnGunRightRadians(b);
-                    }
+                    }*/
                     SetFire(1.0);
                 }
                 // Debug.WriteLine(Time);
@@ -72,6 +75,8 @@ namespace Romanchuk
         {
             CheckEnemyDied(e.Name, e.Energy);
         }
+
+       
 
         private void CheckEnemyDied(string name, double energy)
         {
