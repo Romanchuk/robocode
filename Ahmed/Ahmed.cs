@@ -21,7 +21,8 @@ namespace Romanchuk
         private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
 
         private byte CurrentStrategy = (byte) Strategy.None;
-        private ScannedRobotEvent currentTarget = null;
+        private ScannedRobotEvent CurrentTarget = null;
+        private ScannedRobotEvent RageTarget = null;
 
         override public void Run() {
             IsAdjustGunForRobotTurn = true;
@@ -33,53 +34,52 @@ namespace Romanchuk
             
 
             while (true) {
+                Out.WriteLine($"----------------------------");
                 CurrentStrategy = Others == 1 ? (byte)Strategy.Versus : (byte)Strategy.Deathmatch;
                 ChangeColor(ref colorIteration);
-                SetTurnRadarRight(Rules.RADAR_SCAN_RADIUS);
+                SetTurnRadarRight(Rules.RADAR_TURN_RATE);
 
                 var turnRadians = Utils.NormalAbsoluteAngle(move(X, Y, HeadingRadians, 1, 1));
                 var nextHeading = HeadingRadians + turnRadians;
-                Out.WriteLine($"----------------------------");
+ 
 
                 // ScannedSubject.AsObservable().
                 var lifeEnemies = enemies
                     .Where(e => e.Value.Energy > 0)
                     .Select(d => d.Value)
                     .OrderBy(e => e.Energy)
-                    .ThenBy(e => e.Distance)
+                    .ThenByDescending(e => e.Distance)
                     .Take(Others);
-                var target = lifeEnemies.FirstOrDefault();
-                if (target != null)
-                {
-                    bool targetChanged = currentTarget != null && currentTarget != target;
-                    currentTarget = target;
-                    var normAbsBearing = HeadingRadians + target.BearingRadians;                    
-                    Debug.WriteLine($"Enemy ({target.Name}) Abs Bearing Norm: " + normAbsBearing);
-                    Debug.WriteLine("Gun Heading: " + GunHeadingRadians);
-                    Out.WriteLine($"Enemy ({target.Name}) Abs Bearing Norm: " + normAbsBearing);
-                    Out.WriteLine($"Next Heading: {nextHeading}");
-                    Out.WriteLine($"Heading: {HeadingRadians}");
-                    Out.WriteLine("Gun Heading: " + GunHeadingRadians);
-                    var b = Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
-                    Debug.WriteLine("Turn Gun Radians: " + b);
-                    Out.WriteLine("Turn Gun Radians: " + b);
-                    SetTurnGunRightRadians(b);
-                    /*
-                    if (GunHeadingRadians > normAbsBearing)
-                    {
-                        SetTurnGunLeftRadians(b);
-                    }
-                    else
-                    {
-                        SetTurnGunRightRadians(b);
-                    }*/
-                    SetFire(1.0);
-                }
-                // Debug.WriteLine(Time);
-                //Rules.RADAR_SCAN_RADIUS
-                SetAhead(4.0);
-                SetTurnRight(turnRadians);
+                RageTarget = lifeEnemies.FirstOrDefault(e => e.Name.Equals(RageTarget?.Name))
+                        ?? lifeEnemies.Where(e => e.Distance < 500).FirstOrDefault(e => e.Energy < 40);
+                
+                if (RageTarget == null) {
 
+                    var target = lifeEnemies.OrderBy(e => e.Distance).FirstOrDefault();
+                    if (target != null)
+                    {
+                        bool targetChanged = CurrentTarget != null && CurrentTarget != target;
+                        CurrentTarget = target;
+                        var normAbsBearing = HeadingRadians + target.BearingRadians;                    
+                        Debug.WriteLine($"Enemy ({target.Name}) Abs Bearing Norm: " + normAbsBearing);
+                        Debug.WriteLine("Gun Heading: " + GunHeadingRadians);
+                        Out.WriteLine($"Enemy ({target.Name}) Abs Bearing Norm: " + normAbsBearing);
+                        Out.WriteLine($"Next Heading: {nextHeading}");
+                        Out.WriteLine($"Heading: {HeadingRadians}");
+                        Out.WriteLine("Gun Heading: " + GunHeadingRadians);
+                        var b = Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
+                        Debug.WriteLine("Turn Gun Radians: " + b);
+                        Out.WriteLine("Turn Gun Radians: " + b);
+                        SetTurnGunRightRadians(b);
+                   
+                        SetFire(1.0);
+                    }
+
+                    SetAhead(4.0);
+                    SetTurnRight(turnRadians);
+                } else {
+
+                }
 
                 Execute();
             }
@@ -101,9 +101,15 @@ namespace Romanchuk
             CheckEnemyDied(e.Name, e.Energy);
         }
 
+        /*
+        public override void OnHitByBullet(HitByBulletEvent e)
+        {
+            e.Bullet.
+        }
+        */
 
 
-       
+
 
         private void CheckEnemyDied(string name, double energy)
         {
