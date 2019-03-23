@@ -21,8 +21,6 @@ namespace Romanchuk
     }
 
 
-    // [SecuritySafeCritical]
-    //[System.Security.SecurityCritical()]
     public class Ahmed : AdvancedRobot
     {
         private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
@@ -32,58 +30,21 @@ namespace Romanchuk
         private ScannedRobotEvent RageTarget = null;
         private BehaviorSubject<int> Observable;
 
-        /*static Ahmed()
-        {
-            Debug.WriteLine("Static ctor");
-            // AppDomain.CurrentDomain.Load(resources.System_Reactive);
-            String resourceName = "Romanchuk.Resources.System.Reactive.dll";
-            
-            foreach (var a in Assembly.GetExecutingAssembly().GetManifestResourceNames())
-            {
-                Debug.WriteLine(a);
-            }
-            
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-            {
-                if (stream == null)
-                {
-                    Debug.WriteLine($"Could not load resource \"{resourceName}\"");
-                    return;
-                }
-                Byte[] assemblyData = new Byte[stream.Length];
-                stream.Read(assemblyData, 0, assemblyData.Length);
-                Assembly.Load(assemblyData);
-                Debug.WriteLine($"Resource \"{resourceName}\" loaded");
-            }*/
-        /*/*
-        AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
-        {
-            String resourceName = "System_Reactive" +
-               new AssemblyName(args.Name).Name + ".dll";
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-            {
-                Byte[] assemblyData = new Byte[stream.Length];
-                stream.Read(assemblyData, 0, assemblyData.Length);
-                return Assembly.Load(assemblyData);
-            }
-        };
+        private long lastTimeBeingHit = -1;
 
-    }*/
-        // [SecuritySafeCritical]
-        //[System.Security.SecurityCritical]
         override public void Run() {
             IsAdjustGunForRobotTurn = true;
             IsAdjustRadarForRobotTurn = true;
 
             
             int colorIteration = 1;
-            ChangeColor(ref colorIteration);
-
+            SetAllColors(Color.Black);
 
             Observable = new BehaviorSubject<int>(1);
 
             while (true) {
-                Observable.OnNext(3);
+                SetAllColors(Color.Black);
+                // Observable.OnNext(3);
                 Out.WriteLine($"----------------------------");
                 CurrentStrategy = Others == 1 ? (byte)Strategy.Versus : (byte)Strategy.Deathmatch;
                 
@@ -91,19 +52,22 @@ namespace Romanchuk
 
                 var turnRadians = Utils.NormalAbsoluteAngle(move(X, Y, HeadingRadians, 1, 1));
                 var nextHeading = HeadingRadians + turnRadians;
- 
 
-                // ScannedSubject.AsObservable().
+
                 var lifeEnemies = enemies
-                    .Where(e => e.Value.Energy > 0)
                     .Select(d => d.Value)
+                    .Where(e => e.Energy >= 0)
                     .OrderByDescending(e => e.Energy)
                     .ThenByDescending(e => e.Distance)
                     .Take(Others);
                 RageTarget = lifeEnemies.FirstOrDefault(e => e.Name.Equals(RageTarget?.Name))
-                        ?? lifeEnemies.Where(e => e.Distance < 500).FirstOrDefault(e => e.Energy < 40);
+                        ?? lifeEnemies
+                            .Where(e => e.Distance < 500)
+                            .Where(e => e.Energy < 40 || e.Energy < 45 && Others == 1)
+                            .OrderBy(e => e.Energy)
+                            .FirstOrDefault();
                 
-                if (RageTarget == null) {
+                if (RageTarget == null || Energy <= 10) {
 
                     var target = lifeEnemies.OrderBy(e => e.Distance).FirstOrDefault();
                     if (target != null)
@@ -121,12 +85,40 @@ namespace Romanchuk
                         
                         Debug.WriteLine("Turn Gun Radians: " + b);
                         Out.WriteLine("Turn Gun Radians: " + b);
-                        SetTurnGunRightRadians(GetGunTurnRightRadians(target.BearingRadians));
-                   
-                        SetFire(2.0);
+                        var turnGunRadians = GetGunTurnRightRadians(target.BearingRadians);
+                        SetTurnGunRightRadians(turnGunRadians);
+                        
+                        if (GunHeat == 0 && Math.Abs(turnGunRadians) < 0.3)
+                        {
+                            var firePower = 0.5;
+                            if (CurrentTarget.Distance < 400 && Energy > 12)
+                            {
+                                firePower = 2.0;
+                            }
+                            else if (CurrentTarget.Distance < 180 && Energy > 20)
+                            {
+                                firePower = Rules.MAX_BULLET_POWER/2;
+                            }
+                            else if (CurrentTarget.Distance < 100 && Energy > 24 && Math.Abs(turnGunRadians) < 0.1 || CurrentTarget.Velocity == 0)
+                            {
+                                firePower = Rules.MAX_BULLET_POWER;
+                            }             
+                            if (Energy <= Rules.MAX_BULLET_POWER)
+                            {
+                                firePower = 0.2;
+                            }
+                            var diff = Energy - firePower;
+                            if (diff >= 1)
+                            {
+                                SetFire(firePower);
+                            } else if (Math.Abs(turnGunRadians) < 0.05)
+                            {
+                                SetFire(0.1);
+                            }
+
+                        }
                     }
 
-                    SetAhead(4.0);
                     SetTurnRight(turnRadians);
                 } else {
                     Out.WriteLine($"Enemy ({RageTarget.Name})");
@@ -134,17 +126,19 @@ namespace Romanchuk
                     SetTurnRightRadians(RageTarget.BearingRadians);
                     var turnGunRadians = GetGunTurnRightRadians(RageTarget.BearingRadians);
                     SetTurnGunRightRadians(turnGunRadians);
-                    if (Math.Abs(turnGunRadians) < 0.3)
+                    if (Math.Abs(turnGunRadians) < 0.15)
                     {
-                        SetFire(1.0);
-                    }
-                    if (Math.Abs(RageTarget.BearingRadians) < 1.0)
-                    {
-                        SetAhead(Rules.MAX_VELOCITY);
-                    }
-                    else
-                        SetAhead(Rules.MAX_VELOCITY / 2);
-                    
+                        SetAdjustedFire(RageTarget.Energy);
+                    }                    
+                }
+
+                if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 20 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
+                {
+                    SetAhead(Rules.MAX_VELOCITY);
+                }
+                else
+                {
+                    SetAhead(Rules.MAX_VELOCITY / 2);
                 }
 
                 Execute();
@@ -152,9 +146,14 @@ namespace Romanchuk
         }
 
 
-        override public void OnScannedRobot(ScannedRobotEvent e)
+        override public void OnScannedRobot(ScannedRobotEvent ev)
         {
-            enemies[e.Name] = e;
+            var oldEvents = enemies.Where(e => Time - e.Value.Time > 12).ToList();
+            foreach (var oe in oldEvents)
+            {
+                enemies.Remove(oe);
+            }
+            enemies[ev.Name] = ev;
         }
 
         public override void OnBulletHit(BulletHitEvent e)
@@ -172,47 +171,17 @@ namespace Romanchuk
                 RageTarget = null;
                 return;
             }
-            SetTurnGunRightRadians(GetGunTurnRightRadians(e.BearingRadians));
+            // SetTurnGunRightRadians(GetGunTurnRightRadians(e.BearingRadians));
 
-            if (this.GunHeat == 0)
-            {
-                if (e.Energy > 16)
-                {
-                    SetFire(3);
-                }
-                else if (e.Energy > 10)
-                {
-                    SetFire(2);
-                    // timesShootBullet++;
-                }
-                else if (e.Energy > 4)
-                {
-                    SetFire(1);
-                    // timesShootBullet++;
-                }
-                else if (e.Energy > 2)
-                {
-                    SetFire(.5);
-                    // timesShootBullet++;
-                }
-                else if (e.Energy > .4)
-                {
-                    SetFire(.1);
-                    // timesShootBullet++;
-                }
-            }
-            // ahead(40); // Ram him again!
+            // SetAdjustedFire(e.Energy);
         }
 
        
         public override void OnHitByBullet(HitByBulletEvent e)
         {
-            
+            lastTimeBeingHit = e.Time;
         }
         
-
-
-
 
         private void CheckEnemyDied(string name, double energy)
         {
@@ -241,9 +210,6 @@ namespace Romanchuk
 
             var angle = 0.005;
 
-            // in Java, (-3 MOD 4) is not 1, so make sure we have some excess
-            // positivity here
-            // angle += Math.PI/3;
             double halfOfRobot = Width / 2;
             double distanceToWallX = Math.Min(x - halfOfRobot, BattleFieldWidth - x - halfOfRobot);
             double distanceToWallY = Math.Min(y - halfOfRobot, BattleFieldHeight - y - halfOfRobot);
@@ -255,38 +221,19 @@ namespace Romanchuk
             double nextDistanceToWallY = Math.Min(nextY - halfOfRobot, BattleFieldHeight - nextY - halfOfRobot);
 
             double adjacent = 0;
-            int g = 0; // because I'm paranoid about potential infinite loops
-
-            //while (!(testDistanceX > 0  && testDistanceY > 0) && g++ < 25)
-            //{
-                if (nextDistanceToWallY <= WALL_STICK && nextDistanceToWallY < nextDistanceToWallX)
-                {
+           
+            if (nextDistanceToWallY <= WALL_STICK && nextDistanceToWallY < nextDistanceToWallX)
+            {
                 // wall smooth North or South wall
-                    angle = (angle + (Math.PI / 2));/* / Math.PI) * Math.PI;*/
-                    adjacent = Math.Abs(distanceToWallY);
-                }
-                else if (nextDistanceToWallX <= WALL_STICK && nextDistanceToWallX < nextDistanceToWallY)
-                {
-                    // wall smooth East or West wall
-                    angle = (((angle / Math.PI)) * Math.PI) + (Math.PI / 2);
-                    adjacent = Math.Abs(distanceToWallX);
-                }
-
-                // use your own equivalent of (1 / POSITIVE_INFINITY) instead of 0.005
-                // if you want to stay closer to the wall ;)
-                // angle += smoothTowardEnemy * orientation * (Math.Abs(Math.Acos(adjacent / WALL_STICK)) + 0.005);
-            /*
-                nextX = x + (Math.Sin(angle) * WALL_STICK);
-                nextY = y + (Math.Cos(angle) * WALL_STICK);
-                nextDistanceToWallX = Math.Min(nextX - halfOfRobot, BattleFieldWidth - nextX - halfOfRobot);
-                nextDistanceToWallY = Math.Min(nextY - halfOfRobot, BattleFieldHeight - nextY - halfOfRobot);
-                */
-                if (smoothTowardEnemy == -1)
-                {
-                    // this method ended with tank smoothing away from enemy... you may
-                    // need to note that globally, or maybe you don't care.
-                }
-            //}
+                angle = (angle + (Math.PI / 2));/* / Math.PI) * Math.PI;*/
+                adjacent = Math.Abs(distanceToWallY);
+            }
+            else if (nextDistanceToWallX <= WALL_STICK && nextDistanceToWallX < nextDistanceToWallY)
+            {
+                // wall smooth East or West wall
+                angle = (((angle / Math.PI)) * Math.PI) + (Math.PI / 2);
+                adjacent = Math.Abs(distanceToWallX);
+            }
 
             return angle; // you may want to normalize this
         }
@@ -295,6 +242,34 @@ namespace Romanchuk
         {
             var normAbsBearing = HeadingRadians + targetBearingRadians;
             return Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
+        }
+
+        private void SetAdjustedFire(double enemyEnergy)
+        {
+            if (this.GunHeat > 0)
+            {
+                return;
+            }
+            if (enemyEnergy > 16)
+            {
+                SetFire(3);
+            }
+            else if (enemyEnergy > 10)
+            {
+                SetFire(2);
+            }
+            else if (enemyEnergy > 4)
+            {
+                SetFire(1);
+            }
+            else if (enemyEnergy > 2)
+            {
+                SetFire(.5);
+            }
+            else if (enemyEnergy > .4)
+            {
+                SetFire(.1);
+            }
         }
 
 
