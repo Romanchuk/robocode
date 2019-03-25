@@ -111,7 +111,7 @@ namespace Romanchuk
                             if (diff >= 1)
                             {
                                 SetFire(firePower);
-                            } else if (Math.Abs(turnGunRadians) < 0.05)
+                            } else if (Math.Abs(turnGunRadians) < 0.05 && Energy > 0.1)
                             {
                                 SetFire(0.1);
                             }
@@ -132,7 +132,7 @@ namespace Romanchuk
                     }                    
                 }
 
-                if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 20 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
+                if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 24 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
                 {
                     SetAhead(Rules.MAX_VELOCITY);
                 }
@@ -171,9 +171,6 @@ namespace Romanchuk
                 RageTarget = null;
                 return;
             }
-            // SetTurnGunRightRadians(GetGunTurnRightRadians(e.BearingRadians));
-
-            // SetAdjustedFire(e.Energy);
         }
 
        
@@ -221,7 +218,7 @@ namespace Romanchuk
             double nextDistanceToWallY = Math.Min(nextY - halfOfRobot, BattleFieldHeight - nextY - halfOfRobot);
 
             double adjacent = 0;
-           
+            
             if (nextDistanceToWallY <= WALL_STICK && nextDistanceToWallY < nextDistanceToWallX)
             {
                 // wall smooth North or South wall
@@ -233,6 +230,25 @@ namespace Romanchuk
                 // wall smooth East or West wall
                 angle = (((angle / Math.PI)) * Math.PI) + (Math.PI / 2);
                 adjacent = Math.Abs(distanceToWallX);
+            }
+            else if (distanceToWallY + halfOfRobot <= WALL_STICK || distanceToWallX + halfOfRobot <= WALL_STICK)
+            {
+                if (HeadingRadians < Math.PI / 2)
+                {
+                    angle = (angle - (Math.PI / 2));
+                }
+                else if (HeadingRadians > Math.PI / 2 && HeadingRadians < Math.PI)
+                {
+                    angle = (angle + (Math.PI / 2));
+                }
+                else if (HeadingRadians > Math.PI && HeadingRadians < Math.PI + Math.PI / 2)
+                {
+                    angle = (angle - (Math.PI / 2));
+                }
+                else if (HeadingRadians > Math.PI && HeadingRadians < Math.PI + Math.PI / 2)
+                {
+                    angle = (angle + (Math.PI / 2));
+                }
             }
 
             return angle; // you may want to normalize this
