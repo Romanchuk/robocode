@@ -100,7 +100,7 @@ namespace Romanchuk
                             if (diff >= 1)
                             {
                                 SetFire(firePower);
-                            } else if (Math.Abs(turnGunRadians) < 0.05 && Energy > 0.1)
+                            } else if (Math.Abs(turnGunRadians) < 0.05 && Energy > 0.2)
                             {
                                 SetFire(0.1);
                             }
@@ -113,17 +113,24 @@ namespace Romanchuk
                     Out.WriteLine($"Enemy ({RageTarget.Name})");
                     ChangeColor(ref colorIteration);
                     SetTurnRightRadians(RageTarget.BearingRadians);
-                    var turnGunRadians = GetGunTurnRightRadians(RageTarget.BearingRadians);
+                    var turnGunRadians = GetGunTurnRightRadians(RageTarget.BearingRadians, true);
                     SetTurnGunRightRadians(turnGunRadians);
                     if (Math.Abs(turnGunRadians) < 0.15)
                     {
-                        SetAdjustedFire(RageTarget.Energy);
+                        SetAdjustedFire(RageTarget.Energy, RageTarget.Distance);
                     }                    
                 }
 
                 if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 24 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
                 {
-                    SetAhead(Rules.MAX_VELOCITY);
+                    if (!isTurning)
+                    {
+                        SetAhead(Rules.MAX_VELOCITY);
+                    }
+                    else
+                    {
+                        SetAhead(Rules.MAX_VELOCITY / 2);
+                    }
                 }
                 else
                 {
@@ -189,11 +196,14 @@ namespace Romanchuk
             ));
         }
 
+        private bool isTurning = false;
+
         public double move(double x, double y, double heading, int orientation, int smoothTowardEnemy)
         {
+            isTurning = false;
             var WALL_STICK = 100;
             if (Velocity >= 6)
-                WALL_STICK += 70;
+               WALL_STICK += 80;
             var angle = 0.005;
 
             double halfOfRobot = Width / 2;
@@ -213,12 +223,14 @@ namespace Romanchuk
                 // wall smooth North or South wall
                 angle = (angle + (Math.PI / 2));/* / Math.PI) * Math.PI;*/
                 adjacent = Math.Abs(distanceToWallY);
+                isTurning = true;
             }
             else if (nextDistanceToWallX <= WALL_STICK && nextDistanceToWallX < nextDistanceToWallY)
             {
                 // wall smooth East or West wall
                 angle = (((angle / Math.PI)) * Math.PI) + (Math.PI / 2);
                 adjacent = Math.Abs(distanceToWallX);
+                isTurning = true;
             }
             else if (distanceToWallY + halfOfRobot <= WALL_STICK || distanceToWallX + halfOfRobot <= WALL_STICK)
             {
@@ -238,40 +250,49 @@ namespace Romanchuk
                 {
                     angle = (angle + (Math.PI / 2));
                 }
+                isTurning = true;
             }
 
             return angle; // you may want to normalize this
         }
 
-        private double GetGunTurnRightRadians(double targetBearingRadians)
+        private double GetGunTurnRightRadians(double targetBearingRadians, bool a = false)
         {
             var normAbsBearing = HeadingRadians + targetBearingRadians;
+            if (a)
+            {
+                // normAbsBearing += targetBearingRadians < 0 ? Rules.GetTurnRateRadians(Velocity) : -1 * Rules.GetTurnRateRadians(Velocity);
+            }
             return Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
         }
 
-        private void SetAdjustedFire(double enemyEnergy)
+        private void SetAdjustedFire(double enemyEnergy, double enemyDistance)
         {
             if (this.GunHeat > 0)
             {
                 return;
             }
-            if (enemyEnergy > 16)
+            if (enemyEnergy - 2 > Rules.MAX_BULLET_POWER*4 && Energy > Rules.MAX_BULLET_POWER*3 && enemyDistance < 2*Width)
+            {
+                SetFire(Rules.MAX_BULLET_POWER);
+            }
+            else if (enemyEnergy > 40 && Energy > 4 && enemyDistance < 200)
             {
                 SetFire(3);
             }
-            else if (enemyEnergy > 10)
+            else if (enemyEnergy > 10 && Energy > 3)
             {
                 SetFire(2);
             }
-            else if (enemyEnergy > 4)
+            else if (enemyEnergy > 4 && Energy > 1)
             {
                 SetFire(1);
             }
-            else if (enemyEnergy > 2)
+            else if (enemyEnergy > 2 && Energy > 0.5)
             {
                 SetFire(.5);
             }
-            else if (enemyEnergy > .4)
+            else if (enemyEnergy > .4 && Energy > 0.2)
             {
                 SetFire(.1);
             }
