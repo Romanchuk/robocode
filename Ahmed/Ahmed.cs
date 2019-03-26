@@ -12,20 +12,10 @@ using System.Security;
 
 namespace Romanchuk
 {
-    enum Strategy : byte
-    {
-        None = 0,
-        Deathmatch = 1,
-        Versus = 2,
-        Rage = 4
-    }
-
-
     public class Ahmed : AdvancedRobot
     {
         private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
 
-        private byte CurrentStrategy = (byte) Strategy.None;
         private ScannedRobotEvent CurrentTarget = null;
         private ScannedRobotEvent RageTarget = null;
         private BehaviorSubject<int> Observable;
@@ -46,7 +36,6 @@ namespace Romanchuk
                 SetAllColors(Color.Black);
                 // Observable.OnNext(3);
                 Out.WriteLine($"----------------------------");
-                CurrentStrategy = Others == 1 ? (byte)Strategy.Versus : (byte)Strategy.Deathmatch;
                 
                 SetTurnRadarRight(Rules.RADAR_TURN_RATE);
 
@@ -99,7 +88,7 @@ namespace Romanchuk
                             {
                                 firePower = Rules.MAX_BULLET_POWER/2;
                             }
-                            else if (CurrentTarget.Distance < 100 && Energy > 24 && Math.Abs(turnGunRadians) < 0.1 || CurrentTarget.Velocity == 0)
+                            else if (CurrentTarget.Distance < 100 && Energy > 24 && Math.Abs(turnGunRadians) < 0.1 || CurrentTarget.Velocity == 0 && CurrentTarget.Distance < 200)
                             {
                                 firePower = Rules.MAX_BULLET_POWER;
                             }             
@@ -200,11 +189,11 @@ namespace Romanchuk
             ));
         }
 
-        private double WALL_STICK = 100;
-
         public double move(double x, double y, double heading, int orientation, int smoothTowardEnemy)
         {
-
+            var WALL_STICK = 100;
+            if (Velocity >= 6)
+                WALL_STICK += 70;
             var angle = 0.005;
 
             double halfOfRobot = Width / 2;
@@ -218,7 +207,7 @@ namespace Romanchuk
             double nextDistanceToWallY = Math.Min(nextY - halfOfRobot, BattleFieldHeight - nextY - halfOfRobot);
 
             double adjacent = 0;
-            
+
             if (nextDistanceToWallY <= WALL_STICK && nextDistanceToWallY < nextDistanceToWallX)
             {
                 // wall smooth North or South wall
