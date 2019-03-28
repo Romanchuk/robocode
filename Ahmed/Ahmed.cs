@@ -5,10 +5,6 @@ using System;
 using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Reactive;
-using System.Reactive.Subjects;
-using System.Reflection;
-using System.Security;
 
 namespace Romanchuk
 {
@@ -18,7 +14,7 @@ namespace Romanchuk
 
         private ScannedRobotEvent CurrentTarget = null;
         private ScannedRobotEvent RageTarget = null;
-        private BehaviorSubject<int> Observable;
+        // private BehaviorSubject<int> Observable;
 
         private long lastTimeBeingHit = -1;
 
@@ -30,7 +26,7 @@ namespace Romanchuk
             int colorIteration = 1;
             SetAllColors(Color.Black);
 
-            Observable = new BehaviorSubject<int>(1);
+            // Observable = new BehaviorSubject<int>(1);
 
             while (true) {
                 SetAllColors(Color.Black);
