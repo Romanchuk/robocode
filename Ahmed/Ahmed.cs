@@ -14,13 +14,23 @@ namespace Romanchuk
 {
     public class Ahmed : AdvancedRobot
     {
+        private BotSense _sense = new BotSense();
+
         private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
 
         private ScannedRobotEvent CurrentTarget = null;
         private ScannedRobotEvent RageTarget = null;
         private BehaviorSubject<int> Observable;
+        private Subject<Event> Events = new Subject<Event>();
 
         private long lastTimeBeingHit = -1;
+
+        public Ahmed()
+        {
+            
+            //_sense.Subscribe();
+            // _sense.Where(e => e is ScannedRobotEvent).Cast<ScannedRobotEvent>().Subscribe(new Gunner(this));
+        }
 
         override public void Run() {
             IsAdjustGunForRobotTurn = true;
@@ -31,8 +41,15 @@ namespace Romanchuk
             SetAllColors(Color.Black);
 
             Observable = new BehaviorSubject<int>(1);
+            this.Events.Subscribe(e =>
+            {
+                Out.WriteLine($"----------------------------");
+                Out.WriteLine(e.GetType().ToString());
+            });
 
             while (true) {
+
+
                 SetAllColors(Color.Black);
                 // Observable.OnNext(3);
                 Out.WriteLine($"----------------------------");
@@ -144,6 +161,7 @@ namespace Romanchuk
 
         override public void OnScannedRobot(ScannedRobotEvent ev)
         {
+            this.Events.OnNext(ev);
             var oldEvents = enemies.Where(e => Time - e.Value.Time > 12).ToList();
             foreach (var oe in oldEvents)
             {
@@ -154,11 +172,13 @@ namespace Romanchuk
 
         public override void OnBulletHit(BulletHitEvent e)
         {
+            this.Events.OnNext(e);
             CheckEnemyDied(e.VictimName, e.VictimEnergy);
         }
 
         public override void OnHitRobot(HitRobotEvent e)
         {
+            this.Events.OnNext(e);
             CheckEnemyDied(e.Name, e.Energy);
             if (RageTarget == null)
                 return;
@@ -172,6 +192,7 @@ namespace Romanchuk
        
         public override void OnHitByBullet(HitByBulletEvent e)
         {
+            this.Events.OnNext(e);
             lastTimeBeingHit = e.Time;
         }
         
