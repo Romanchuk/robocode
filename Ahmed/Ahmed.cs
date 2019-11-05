@@ -5,47 +5,36 @@ using System;
 using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Reactive;
-using System.Reactive.Subjects;
-using System.Reflection;
-using System.Security;
 
 namespace Romanchuk
 {
-    public class Ahmed : AdvancedRobot
+    public class Ahmed2 : AdvancedRobot
     {
-        private BotSense _sense = new BotSense();
 
         private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
 
         private ScannedRobotEvent CurrentTarget = null;
         private ScannedRobotEvent RageTarget = null;
-        private BehaviorSubject<int> Observable;
-        private Subject<Event> Events = new Subject<Event>();
+
+        private readonly Target _target = new Target();
 
         private long lastTimeBeingHit = -1;
 
-        public Ahmed()
+        public Ahmed2()
         {
             
             //_sense.Subscribe();
             // _sense.Where(e => e is ScannedRobotEvent).Cast<ScannedRobotEvent>().Subscribe(new Gunner(this));
         }
 
-        override public void Run() {
+        public override void Run() {
             IsAdjustGunForRobotTurn = true;
             IsAdjustRadarForRobotTurn = true;
+            _target.Reset();
 
-            
+
             int colorIteration = 1;
             SetAllColors(Color.Black);
-
-            Observable = new BehaviorSubject<int>(1);
-            this.Events.Subscribe(e =>
-            {
-                Out.WriteLine($"----------------------------");
-                Out.WriteLine(e.GetType().ToString());
-            });
 
             while (true) {
 
@@ -60,21 +49,10 @@ namespace Romanchuk
                 var nextHeading = HeadingRadians + turnRadians;
 
 
-                var lifeEnemies = enemies
-                    .Select(d => d.Value)
-                    .Where(e => e.Energy >= 0)
-                    .OrderByDescending(e => e.Energy)
-                    .ThenByDescending(e => e.Distance)
-                    .Take(Others);
-                RageTarget = lifeEnemies.FirstOrDefault(e => e.Name.Equals(RageTarget?.Name))
-                        ?? lifeEnemies
-                            .Where(e => e.Distance < 500)
-                            .Where(e => e.Energy < 40 || e.Energy < 45 && Others == 1)
-                            .OrderBy(e => e.Energy)
-                            .FirstOrDefault();
                 
+                /*
                 if (RageTarget == null || Energy <= 10) {
-
+                */
                     var target = lifeEnemies.OrderBy(e => e.Distance).FirstOrDefault();
                     if (target != null)
                     {
@@ -91,9 +69,12 @@ namespace Romanchuk
                         
                         Debug.WriteLine("Turn Gun Radians: " + b);
                         Out.WriteLine("Turn Gun Radians: " + b);
-                        var turnGunRadians = GetGunTurnRightRadians(target.BearingRadians);
-                        SetTurnGunRightRadians(turnGunRadians);
-                        
+                        var turnGunRadians = GetDiffTargetAndGunRadians(target, true);
+                        if (this.TurnRemainingRadians == 0)
+                        {
+                            SetTurnGunRightRadians(turnGunRadians);
+                        }
+
                         if (GunHeat == 0 && Math.Abs(turnGunRadians) < 0.3)
                         {
                             var firePower = 0.5;
@@ -125,60 +106,81 @@ namespace Romanchuk
                         }
                     }
 
-                    SetTurnRight(turnRadians);
+                    // SetTurnRight(turnRadians);
+                /*
                 } else {
                     Out.WriteLine($"Enemy ({RageTarget.Name})");
                     ChangeColor(ref colorIteration);
-                    SetTurnRightRadians(RageTarget.BearingRadians);
-                    var turnGunRadians = GetGunTurnRightRadians(RageTarget.BearingRadians, true);
+                    // SetTurnRightRadians(RageTarget.BearingRadians);
+                    var turnGunRadians = GetDiffTargetAndGunRadians(RageTarget.BearingRadians, true);
                     SetTurnGunRightRadians(turnGunRadians);
                     if (Math.Abs(turnGunRadians) < 0.15)
                     {
                         SetAdjustedFire(RageTarget.Energy, RageTarget.Distance);
-                    }                    
-                }
+                    }
+                /*
+            }
 
-                if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 24 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
+
+            if (lastTimeBeingHit != -1 && Time - lastTimeBeingHit < 24 || Energy < 15 || (RageTarget !=null && Math.Abs(RageTarget.BearingRadians) < 0.5))
+            {
+                if (!isTurning)
                 {
-                    if (!isTurning)
-                    {
-                        SetAhead(Rules.MAX_VELOCITY);
-                    }
-                    else
-                    {
-                        SetAhead(Rules.MAX_VELOCITY / 2);
-                    }
+                    SetAhead(Rules.MAX_VELOCITY);
                 }
                 else
                 {
                     SetAhead(Rules.MAX_VELOCITY / 2);
                 }
+            }
+            else
+            {
+                SetAhead(Rules.MAX_VELOCITY / 2);
+            }*/
 
                 Execute();
             }
         }
 
 
-        override public void OnScannedRobot(ScannedRobotEvent ev)
+        public override void OnScannedRobot(ScannedRobotEvent ev)
         {
-            this.Events.OnNext(ev);
             var oldEvents = enemies.Where(e => Time - e.Value.Time > 12).ToList();
             foreach (var oe in oldEvents)
             {
                 enemies.Remove(oe);
             }
             enemies[ev.Name] = ev;
+
+
+
+            var lifeEnemies = enemies
+                .Select(d => d.Value)
+                .Where(e => e.Energy >= 0)
+                .OrderByDescending(e => e.Energy)
+                .ThenByDescending(e => e.Distance)
+                .Take(Others);
+
+
+            var fff = lifeEnemies.FirstOrDefault(e => e.Name.Equals(_target.Name));
+            if (
+                         ?? lifeEnemies
+                             .Where(e => e.Distance < 500)
+                             .Where(e => e.Energy < 40 || e.Energy < 45 && Others == 1)
+                             .OrderBy(e => e.Energy)
+                             .FirstOrDefault();
+
+
+            _target.Set(ev, this);
         }
 
         public override void OnBulletHit(BulletHitEvent e)
         {
-            this.Events.OnNext(e);
             CheckEnemyDied(e.VictimName, e.VictimEnergy);
         }
 
         public override void OnHitRobot(HitRobotEvent e)
         {
-            this.Events.OnNext(e);
             CheckEnemyDied(e.Name, e.Energy);
             if (RageTarget == null)
                 return;
@@ -192,7 +194,6 @@ namespace Romanchuk
        
         public override void OnHitByBullet(HitByBulletEvent e)
         {
-            this.Events.OnNext(e);
             lastTimeBeingHit = e.Time;
         }
         
@@ -277,14 +278,20 @@ namespace Romanchuk
             return angle; // you may want to normalize this
         }
 
-        private double GetGunTurnRightRadians(double targetBearingRadians, bool a = false)
+        private double GetDiffTargetAndGunRadians(ScannedRobotEvent target, bool predict = false)
         {
-            var normAbsBearing = HeadingRadians + targetBearingRadians;
-            if (a)
-            {
-                // normAbsBearing += targetBearingRadians < 0 ? Rules.GetTurnRateRadians(Velocity) : -1 * Rules.GetTurnRateRadians(Velocity);
-            }
-            return Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
+            var normAbsBearing = HeadingRadians + target.BearingRadians;
+            // 
+            // if (predict)
+            //{
+            var targetNextHeadingRadians =
+                HeadingRadians + target.HeadingRadians + (target.Velocity/10000);
+                Out.Write("Predicted heading: " + targetNextHeadingRadians);
+                // target.Velocity * target.Bearing
+            // }
+            var angle = Utils.NormalRelativeAngle(normAbsBearing - GunHeadingRadians);
+            var predAngleKoef = (target.Velocity / Math.PI);
+            return Utils.NormalRelativeAngle(angle + angle * predAngleKoef);
         }
 
         private void SetAdjustedFire(double enemyEnergy, double enemyDistance)
@@ -319,6 +326,16 @@ namespace Romanchuk
             }
         }
 
+
+        double CalculateBulletSpeed(double firePower)
+        {
+            return 20 - firePower * 3;
+        }
+
+        long CalculateBulletHitTime(double targetDistance, double bulletSpeed)
+        {
+            return (long) (targetDistance / bulletSpeed);
+        }
 
     }
 }
