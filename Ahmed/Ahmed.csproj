@@ -41,7 +41,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="robocode">
-      <HintPath>..\..\..\..\robocode\libs\robocode.dll</HintPath>
+      <HintPath>F:\robocode\libs\robocode.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -52,6 +53,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Ahmed.cs" />
+    <Compile Include="BattleStrategy\IBattleStrategy.cs" />
+    <Compile Include="BattleStrategy\RageBattleStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Target.cs" />
   </ItemGroup>
@@ -59,6 +62,7 @@
     <None Include="key.snk" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>

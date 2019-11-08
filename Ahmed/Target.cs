@@ -6,6 +6,14 @@ namespace Romanchuk
 {
     public class Target
     {
+        public readonly Robot myRobot;
+
+        public Target(Robot robot)
+        {
+            myRobot = robot;
+        }
+
+
         public ScannedRobotEvent Instance = null;
 
         public string Name => this.Instance?.Name;
@@ -15,7 +23,7 @@ namespace Romanchuk
         public double X { get; set; }
         public double Y { get; set; }
 
-        public void Set(ScannedRobotEvent e, Robot myRobot)
+        public void Set(ScannedRobotEvent e)
         {
             this.Instance = e;
 
