@@ -88,7 +88,7 @@ namespace Romanchuk
             );
         }
 
-        public void onRobotDeath(RobotDeathEvent e)
+        public override void OnRobotDeath(RobotDeathEvent e)
         {
             enemies.Remove(e.Name);
             if (e.Name.Equals(BattleStrategy.Target.Name))
@@ -100,17 +100,6 @@ namespace Romanchuk
         public override void OnHitByBullet(HitByBulletEvent e)
         {
             lastTimeBeingHit = e.Time;
-        }
-        
-
-        double CalculateBulletSpeed(double firePower)
-        {
-            return 20 - firePower * 3;
-        }
-
-        long CalculateBulletHitTime(double targetDistance, double bulletSpeed)
-        {
-            return (long) (targetDistance / bulletSpeed);
         }
 
     }
