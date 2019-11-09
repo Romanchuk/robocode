@@ -15,7 +15,7 @@ namespace Romanchuk.Helpers
             return (long)(targetDistance / bulletSpeed);
         }
 
-        public static double AbsoluteBearing(double x1, double y1, double x2, double y2)
+        public static double AbsoluteBearingDegrees(double x1, double y1, double x2, double y2)
         {
             double xo = x2 - x1;
             double yo = y2 - y1;

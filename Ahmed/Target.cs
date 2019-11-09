@@ -23,7 +23,7 @@ namespace Romanchuk
         public double X { get; set; }
         public double Y { get; set; }
 
-        public void Set(ScannedRobotEvent e)
+        public void Update(ScannedRobotEvent e)
         {
             this.Instance = e;
 

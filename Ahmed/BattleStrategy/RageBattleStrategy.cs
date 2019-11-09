@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Romanchuk.Helpers;
 
 namespace Romanchuk.BattleStrategy
@@ -68,13 +69,18 @@ namespace Romanchuk.BattleStrategy
 
             if (!Target.None)
             {
-                return;
+                var targetUpdatedData = enemies.FirstOrDefault(e => e.Name.Equals(Target.Name));
+                if (targetUpdatedData != null)
+                {
+                    Target.Update(targetUpdatedData);
+                    return;
+                }
             }
 
             var orderedEnemies = enemies
                 .OrderByDescending(e => e.Energy)
                 .ThenByDescending(e => e.Distance);
-            Target.Set(orderedEnemies.First());
+            Target.Update(orderedEnemies.First());
         }
     
 
@@ -95,13 +101,13 @@ namespace Romanchuk.BattleStrategy
 
             double futureX = Target.GetFutureX(timeToHitEnemy);
             double futureY = Target.GetFutureY(timeToHitEnemy);
-            double absDeg = ShootHelpers.AbsoluteBearing(_robot.X, _robot.Y, futureX, futureY);
+            double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
 
-            var angleToTurn = Utils.NormalAbsoluteAngleDegrees(absDeg - _robot.GunHeading);
+            var angleToTurn = absDeg - _robot.GunHeading;
             _robot.SetTurnGunRight(angleToTurn);
 
  
-            if (_robot.GunHeat == 0 && Math.Abs(_robot.GunTurnRemaining) < 2)
+            if (_robot.GunHeat == 0 && Math.Abs(_robot.GunTurnRemaining) < 0.5)
             {
                 _robot.SetFire(bulletPower);
             }

@@ -8,21 +8,21 @@ namespace Romanchuk
 {
     public class Ahmed : AdvancedRobot
     {
-        private readonly IDictionary<string, ScannedRobotEvent> enemies = new Dictionary<string, ScannedRobotEvent>();
+        private readonly IDictionary<string, ScannedRobotEvent> _enemies = new Dictionary<string, ScannedRobotEvent>();
 
-        private readonly IBattleStrategy BattleStrategy;
+        private readonly IBattleStrategy _battleStrategy;
 
         private long lastTimeBeingHit = -1;
 
         public Ahmed()
         {
-            BattleStrategy = new RageBattleStrategy<Ahmed>(this); 
+            _battleStrategy = new RageBattleStrategy<Ahmed>(this); 
         }
 
         public override void Run() {
             IsAdjustGunForRobotTurn = true;
             IsAdjustRadarForRobotTurn = true;
-            BattleStrategy.Target.Reset();
+            _battleStrategy.Target.Reset();
 
             int colorIteration = 1;
             SetAllColors(Color.Black);
@@ -60,9 +60,9 @@ namespace Romanchuk
 
             */
 
-                BattleStrategy.ChangeColor(ref colorIteration);
-                BattleStrategy.Move();
-                BattleStrategy.Shoot();
+                _battleStrategy.ChangeColor(ref colorIteration);
+                _battleStrategy.Move();
+                _battleStrategy.Shoot();
 
                 Execute();
             }
@@ -71,17 +71,17 @@ namespace Romanchuk
 
         public override void OnScannedRobot(ScannedRobotEvent ev)
         {
-            var oldEvents = enemies
+            var oldEvents = _enemies
                 .Where(e => Time - e.Value.Time > 12)
                 .ToList();
             foreach (var oe in oldEvents)
             {
-                enemies.Remove(oe);
+                _enemies.Remove(oe);
             }
-            enemies[ev.Name] = ev;
+            _enemies[ev.Name] = ev;
 
-            BattleStrategy.ChooseTarget(
-                enemies
+            _battleStrategy.ChooseTarget(
+                _enemies
                     .Where(e => e.Value.Energy >= 0)
                     .Take(Others)
                     .Select(e => e.Value)
@@ -90,10 +90,10 @@ namespace Romanchuk
 
         public override void OnRobotDeath(RobotDeathEvent e)
         {
-            enemies.Remove(e.Name);
-            if (e.Name.Equals(BattleStrategy.Target.Name))
+            _enemies.Remove(e.Name);
+            if (e.Name.Equals(_battleStrategy.Target.Name))
             {
-                BattleStrategy.Target.Reset();
+                _battleStrategy.Target.Reset();
             }
         }
 
