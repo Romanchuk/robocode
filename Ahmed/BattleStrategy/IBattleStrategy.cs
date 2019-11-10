@@ -1,5 +1,4 @@
-﻿using Robocode;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Romanchuk.BattleStrategy
 {
@@ -11,8 +10,10 @@ namespace Romanchuk.BattleStrategy
 
         void Move();
 
-        void ChooseTarget(IEnumerable<ScannedRobotEvent> enemies);
+        void ChooseTarget(IEnumerable<Enemy> enemies);
 
-        Target Target { get; }
+        void ResetTarget();
+
+        Enemy CurrentTarget { get; }
     }
 }

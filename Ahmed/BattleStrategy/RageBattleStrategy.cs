@@ -4,21 +4,20 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Romanchuk.Helpers;
 
 namespace Romanchuk.BattleStrategy
 {
     public class RageBattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
     {
-        public Target Target { get; }
+        public Enemy CurrentTarget { get; private set; }
+        public Enemy[] Enemies = {};
 
         private readonly AdvancedRobot _robot;        
 
         public RageBattleStrategy(T robot)
         {
             _robot = robot;
-            Target = new Target(_robot);
         }
 
         public void ChangeColor(ref int colorIteration)
@@ -38,7 +37,7 @@ namespace Romanchuk.BattleStrategy
             var turnAngle = Utils.NormalAbsoluteAngle(move(_robot.X, _robot.Y, _robot.HeadingRadians, 1, 1));
             _robot.SetTurnRight(turnAngle);
             // var nextHeading = Robot.HeadingRadians + turnRadians;
-            if (/*lastTimeBeingHit != -1 && Robot.Time - lastTimeBeingHit < 24 || */_robot.Energy < 15 || (!Target.None && Math.Abs(Target.Instance.BearingRadians) < 0.5))
+            if (/*lastTimeBeingHit != -1 && Robot.Time - lastTimeBeingHit < 24 || */_robot.Energy < 15 || (CurrentTarget != null && Math.Abs(CurrentTarget.Instance.BearingRadians) < 0.5))
             {
                 if (!_isTurning)
                 {
@@ -56,51 +55,41 @@ namespace Romanchuk.BattleStrategy
         }
 
 
-        public void ChooseTarget(IEnumerable<ScannedRobotEvent> enemies)
+        public void ChooseTarget(IEnumerable<Enemy> enemies)
         {
-            if (enemies == null)
-            {
-                throw new ArgumentNullException(nameof(enemies));
-            }
-            if (enemies == null)
-            {
-                throw new ArgumentNullException(nameof(enemies));
-            }
+            if (enemies == null) { throw new ArgumentNullException(nameof(enemies)); }
 
-            if (!Target.None)
+            Enemies = enemies
+                .OrderByDescending(e => e.Instance.Energy)
+                .ThenByDescending(e => e.Instance.Distance)
+                .ToArray();
+            Enemy currentTargetInEnemies = null;
+            if (CurrentTarget != null)
             {
-                var targetUpdatedData = enemies.FirstOrDefault(e => e.Name.Equals(Target.Name));
-                if (targetUpdatedData != null)
-                {
-                    Target.Update(targetUpdatedData);
-                    return;
-                }
+                currentTargetInEnemies = Enemies.FirstOrDefault(e => e.Name.Equals(CurrentTarget.Name));
             }
+            CurrentTarget = currentTargetInEnemies ?? Enemies.First();
 
-            var orderedEnemies = enemies
-                .OrderByDescending(e => e.Energy)
-                .ThenByDescending(e => e.Distance);
-            Target.Update(orderedEnemies.First());
         }
     
 
         public void ResetTarget()
         {
-            Target.Reset();
+            CurrentTarget = null;
         }
 
         public void Shoot()
         {
-            if (Target.None)
+            if (CurrentTarget == null)
             {
                 return;
             }
 
-            double bulletPower = CalcBulletPower(Target.Instance.Energy, Target.Instance.Distance);
-            long timeToHitEnemy = (long)(Target.Instance.Distance / ShootHelpers.CalculateBulletSpeed(bulletPower));
+            double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
+            long timeToHitEnemy = (long)(CurrentTarget.Instance.Distance / ShootHelpers.CalculateBulletSpeed(bulletPower));
 
-            double futureX = Target.GetFutureX(timeToHitEnemy);
-            double futureY = Target.GetFutureY(timeToHitEnemy);
+            double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
+            double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
             double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
 
             var angleToTurn = absDeg - _robot.GunHeading;
@@ -202,19 +191,6 @@ namespace Romanchuk.BattleStrategy
                 return .1;
             }
             return .1;
-        }
-
-        private double GetDiffTargetAndGunRadians(ScannedRobotEvent target)
-        {
-            var normAbsBearing = _robot.HeadingRadians + target.BearingRadians;
-
-            var targetNextHeadingRadians =
-                _robot.HeadingRadians + target.HeadingRadians + (target.Velocity / 10000);
-            _robot.Out.Write("Predicted heading: " + targetNextHeadingRadians);
-
-            var angle = Utils.NormalRelativeAngle(normAbsBearing - _robot.GunHeadingRadians);
-            var predAngleKoef = (target.Velocity / Math.PI);
-            return Utils.NormalRelativeAngle(angle + angle * predAngleKoef);
         }
     }
 }

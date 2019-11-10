@@ -4,28 +4,46 @@ using Robocode.Util;
 
 namespace Romanchuk
 {
-    public class Target
+    public class Enemy
     {
         public readonly Robot myRobot;
 
-        public Target(Robot robot)
+        public Enemy(Robot robot)
         {
             myRobot = robot;
         }
 
 
-        public ScannedRobotEvent Instance = null;
+        public ScannedRobotEvent Instance;
 
-        public string Name => this.Instance?.Name;
+        public string Name => Instance?.Name;
 
-        public bool None => this.Instance == null;
+        public double PreviousTurnEnergy = -1d;
+
+        public bool JustShooted
+        {
+            get
+            {
+                if (PreviousTurnEnergy.Equals(-1d))
+                {
+                    return false;
+                }
+                var energyDiff = Instance.Energy - PreviousTurnEnergy;
+                return energyDiff > 0d && energyDiff <= 3d;
+            }
+        }
+
 
         public double X { get; set; }
         public double Y { get; set; }
 
         public void Update(ScannedRobotEvent e)
         {
-            this.Instance = e;
+            if (Instance != null && e.Time > Instance.Time)
+            {
+                PreviousTurnEnergy = Instance.Energy;
+            }
+            Instance = e;
 
             double absBearingDeg = (myRobot.Heading + e.Bearing);
             if (absBearingDeg < 0) absBearingDeg += 360;
@@ -37,43 +55,43 @@ namespace Romanchuk
             Y = myRobot.Y + Math.Cos(Utils.ToRadians(absBearingDeg)) * e.Distance;
         }
 
-
-        public void Reset()
-        {
-            Instance = null;
-        }
-
         public double GetFutureX(long momentOfTime)
         {
-            if (this.Instance == null)
+            if (Instance == null)
             {
                 throw new Exception("There is no target instance");
             }
-            return X + Math.Sin(this.Instance.HeadingRadians) * this.Instance.Velocity * momentOfTime;
+            var futureX = X + Math.Sin(Instance.HeadingRadians) * Instance.Velocity * momentOfTime;
+            var xo = futureX - X;
+            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? myRobot.Width / 4 : 0);
+            return futureX; // + (xo > 0 ? 1 : -1) * bonusForDistance;
         }
 
         public double GetFutureY(long momentOfTime)
         {
-            if (this.Instance == null)
+            if (Instance == null)
             {
                 throw new Exception("There is no target instance");
             }
-            return Y + Math.Cos(this.Instance.HeadingRadians) * this.Instance.Velocity * momentOfTime;
+            var futureY = Y + Math.Cos(Instance.HeadingRadians) * Instance.Velocity * momentOfTime;
+            var yo = futureY - Y;
+            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? myRobot.Width / 4 : 0);
+            return futureY;// + (yo > 0 ? 1 : -1) * bonusForDistance;
         }
-
+        // TODO: Прицеливание когда танки на одной линии
         public double GetFutureT(Robot myRobot, double bulletVelocity)
         {
 
             // enemy velocity
-            double velocity = this.Instance.Velocity;
+            double velocity = Instance.Velocity;
 
             // temp variables
             double x_diff = X - myRobot.X;
             double y_diff = Y - myRobot.Y;
 
             // angles of enemy's heading
-            double sin = Math.Sin(this.Instance.HeadingRadians);
-            double cos = Math.Cos(this.Instance.HeadingRadians);
+            double sin = Math.Sin(Instance.HeadingRadians);
+            double cos = Math.Cos(Instance.HeadingRadians);
 
            
 
