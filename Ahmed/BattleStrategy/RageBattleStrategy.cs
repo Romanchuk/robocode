@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Romanchuk.Helpers;
+using Romanchuk.MoveStrategy;
 
 namespace Romanchuk.BattleStrategy
 {
@@ -12,6 +13,7 @@ namespace Romanchuk.BattleStrategy
     {
         public Enemy CurrentTarget { get; private set; }
         public Enemy[] Enemies = {};
+        public IMoveStrategy MoveStrategy;
 
         private readonly AdvancedRobot _robot;        
 
@@ -34,8 +36,24 @@ namespace Romanchuk.BattleStrategy
 
         public void Move()
         {
-            var turnAngle = Utils.NormalAbsoluteAngle(move(_robot.X, _robot.Y, _robot.HeadingRadians, 1, 1));
-            _robot.SetTurnRight(turnAngle);
+            if (MoveStrategy == null)
+            {
+                MoveStrategy = new SafeMoveStrategy(_robot.BattleFieldHeight, _robot.BattleFieldWidth);
+            }
+
+            //var turnAngle = Utils.NormalAbsoluteAngle(move(_robot.X, _robot.Y, _robot.HeadingRadians, 1, 1));
+            var dest = MoveStrategy.SetDestination(Enemies, _robot);
+            double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
+
+            var angleToTurn = absDeg - _robot.Heading;
+            _robot.SetTurnRight(angleToTurn);
+
+            if (Math.Abs(_robot.X - dest.X) < 10 && Math.Abs(_robot.Y - dest.Y) < 10)
+            {
+                //_robot.Stop();
+                return;
+            }
+
             // var nextHeading = Robot.HeadingRadians + turnRadians;
             if (/*lastTimeBeingHit != -1 && Robot.Time - lastTimeBeingHit < 24 || */_robot.Energy < 15 || (CurrentTarget != null && Math.Abs(CurrentTarget.Instance.BearingRadians) < 0.5))
             {

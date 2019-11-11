@@ -33,11 +33,12 @@ namespace Romanchuk
             }
         }
 
+        /*
         public double ThreatIndex
         {
             get { return Instance?.Distance + Instance?.Energy; }
         }
-
+        */
 
         public double X { get; set; }
         public double Y { get; set; }

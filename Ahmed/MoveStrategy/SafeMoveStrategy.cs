@@ -6,7 +6,7 @@ using Robocode;
 namespace Romanchuk.MoveStrategy
 {
 
-    struct Zone
+    class Zone
     {
         public Zone(PointF leftBottom, PointF rightTop)
         {
@@ -19,6 +19,11 @@ namespace Romanchuk.MoveStrategy
         public PointF RightTop;
 
         public double ThreatLevel;
+
+        public PointF GetCenterPoint()
+        {
+            return new PointF(RightTop.X - (RightTop.X - LeftBottom.X)/2, RightTop.Y - (RightTop.Y - LeftBottom.Y)/2);
+        }
     }
 
     public class SafeMoveStrategy : IMoveStrategy
@@ -35,7 +40,11 @@ namespace Romanchuk.MoveStrategy
             var baseY = 0d;
             // 0,0 - Left, Bottom
             for (var i = 0; i < 9; i++)
-            {
+            {                
+                _zones[i] = new Zone(
+                    new PointF((float)(baseX), (int)baseY),
+                    new PointF((float)(baseX + zoneWidth), (float)(baseY + zoneHeight))
+                );
                 if ((i + 1) % 3 == 0)
                 {
                     baseX = 0;
@@ -45,34 +54,43 @@ namespace Romanchuk.MoveStrategy
                 {
                     baseX += zoneWidth;
                 }
-                _zones[i] = new Zone(
-                    new PointF((float)(baseX), (int)baseY),
-                    new PointF((float)(baseX + zoneWidth), (float)(baseY + zoneHeight))
-                );
             }
         }
 
-        public Point SetDestination(Enemy[] enemies, Robot myRobot)
+        public PointF SetDestination(Enemy[] enemies, Robot myRobot)
         {
             for (var i = 0; i < _zones.Length; i++)
             {
-                var z = _zones[i].ThreatLevel = 0;
+                _zones[i].ThreatLevel = 0;
             }
 
             foreach (var e in enemies)
             {
-                var countZone =_zones.FirstOrDefault(z => z.LeftBottom.X <= e.X 
-                                                          && z.RightTop.X >= e.X 
-                                                          && z.LeftBottom.Y <= e.Y 
-                                                          && z.RightTop.Y >= e.Y);
-                if (Array.IndexOf(_zones, countZone) != -1)
-                {
-                    countZone.ThreatLevel += 1;
-                }
+                var countZone = CoordsInZone(e.X, e.Y);
+                countZone.ThreatLevel += 1;                
             }
-            var cosestAndSafiestZone = 
+            // Zone myRobotZone = CoordsInZone(myRobot.X, myRobot.Y);
 
 
+            var zones = _zones.Select(e => new
+                           {
+                               e,
+                               distance = Math.Sqrt(Math.Pow((myRobot.X - e.GetCenterPoint().X), 2) + Math.Pow((myRobot.Y - e.GetCenterPoint().Y), 2))
+                           });
+
+              var minDistZone = zones
+                    .OrderBy(z => z.e.ThreatLevel)
+                    .ThenBy(z => z.distance)                 
+                    .First();
+            return minDistZone.e.GetCenterPoint();
+        }
+
+        private Zone CoordsInZone(double X, double Y)
+        {
+            return _zones.FirstOrDefault(z => z.LeftBottom.X <= X
+                                                          && z.RightTop.X >= X
+                                                          && z.LeftBottom.Y <= Y
+                                                          && z.RightTop.Y >= Y);
         }
 
     }
