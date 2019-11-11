@@ -55,6 +55,8 @@
     <Compile Include="BattleStrategy\IBattleStrategy.cs" />
     <Compile Include="BattleStrategy\RageBattleStrategy.cs" />
     <Compile Include="Helpers\ShootHelpers.cs" />
+    <Compile Include="MoveStrategy\IMoveStrategy.cs" />
+    <Compile Include="MoveStrategy\SafeMoveStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Enemy.cs" />
   </ItemGroup>
