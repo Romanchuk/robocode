@@ -24,11 +24,26 @@ namespace Romanchuk.MoveStrategy
         {
             return new PointF(RightTop.X - (RightTop.X - LeftBottom.X)/2, RightTop.Y - (RightTop.Y - LeftBottom.Y)/2);
         }
+
+        public PointF GetRandomPoint()
+        {
+            var rand = new Random();
+            return new PointF(rand.Next((int)LeftBottom.X, (int)RightTop.X), rand.Next((int)LeftBottom.Y, (int)RightTop.Y));
+        }
+
+        public bool InZone(PointF point)
+        {
+            return RightTop.X >= point.X && RightTop.Y >= point.Y && LeftBottom.X <= point.X && LeftBottom.Y <= point.Y;
+        }
     }
 
     public class SafeMoveStrategy : IMoveStrategy
     {
         private readonly Zone[] _zones = new Zone[9];
+        private Zone DestinationZone = null;
+
+        public PointF DestinationPoint = new PointF(0,0);
+        
 
         public SafeMoveStrategy(double battleFieldHeight, double battleFieldWidth)
         {
@@ -64,13 +79,14 @@ namespace Romanchuk.MoveStrategy
                 _zones[i].ThreatLevel = 0;
             }
 
+            // Center ThreatLvl
+            _zones[4].ThreatLevel = enemies.Length > 3 ? 1 : 0;
+
             foreach (var e in enemies)
             {
                 var countZone = CoordsInZone(e.X, e.Y);
                 countZone.ThreatLevel += 1;                
             }
-            // Zone myRobotZone = CoordsInZone(myRobot.X, myRobot.Y);
-
 
             var zones = _zones.Select(e => new
                            {
@@ -82,7 +98,20 @@ namespace Romanchuk.MoveStrategy
                     .OrderBy(z => z.e.ThreatLevel)
                     .ThenBy(z => z.distance)                 
                     .First();
-            return minDistZone.e.GetCenterPoint();
+
+            DestinationZone = DestinationZone ?? minDistZone.e;
+
+            PointF point = DestinationPoint;
+            if (minDistZone.e != DestinationZone)
+            {
+                DestinationZone = minDistZone.e;
+                point = DestinationZone.GetRandomPoint();
+            } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 10 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 10)
+            {
+                point = DestinationZone.GetRandomPoint();
+            }
+            DestinationPoint = CorrectPointOnBorders(point, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width*2));
+            return DestinationPoint;
         }
 
         private Zone CoordsInZone(double X, double Y)
@@ -91,6 +120,30 @@ namespace Romanchuk.MoveStrategy
                                                           && z.RightTop.X >= X
                                                           && z.LeftBottom.Y <= Y
                                                           && z.RightTop.Y >= Y);
+        }
+
+
+        private PointF CorrectPointOnBorders(PointF point, double maxX, double maxY, float safeBorderDist)
+        {
+            float newX = point.X;
+            float newY = point.Y;
+            if (point.X < safeBorderDist)
+            {
+                newX = safeBorderDist;
+            }
+            if (point.Y < safeBorderDist)
+            {
+                newY = safeBorderDist;
+            }
+            if (maxX - point.X < safeBorderDist)
+            {
+                newX = safeBorderDist;
+            }
+            if (maxY - point.Y < safeBorderDist)
+            {
+                newY = safeBorderDist;
+            }
+            return new PointF(newX, newY);
         }
 
     }
