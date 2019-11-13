@@ -38,7 +38,7 @@ namespace Romanchuk.BattleStrategy
         {
             if (MoveStrategy == null)
             {
-                MoveStrategy = new SafeMoveStrategy(_robot.BattleFieldHeight, _robot.BattleFieldWidth);
+                MoveStrategy = new SafeZoneMoveStrategy(_robot.BattleFieldHeight, _robot.BattleFieldWidth);
             }
 
             //var turnAngle = Utils.NormalAbsoluteAngle(move(_robot.X, _robot.Y, _robot.HeadingRadians, 1, 1));

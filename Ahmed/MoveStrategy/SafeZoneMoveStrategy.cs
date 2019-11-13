@@ -31,13 +31,13 @@ namespace Romanchuk.MoveStrategy
             return new PointF(rand.Next((int)LeftBottom.X, (int)RightTop.X), rand.Next((int)LeftBottom.Y, (int)RightTop.Y));
         }
 
-        public bool InZone(PointF point)
+        public bool InZone(double x, double y)
         {
-            return RightTop.X >= point.X && RightTop.Y >= point.Y && LeftBottom.X <= point.X && LeftBottom.Y <= point.Y;
+            return RightTop.X >= x && RightTop.Y >= y&& LeftBottom.X <= x && LeftBottom.Y <= y;
         }
     }
 
-    public class SafeMoveStrategy : IMoveStrategy
+    public class SafeZoneMoveStrategy : IMoveStrategy
     {
         private readonly Zone[] _zones = new Zone[9];
         private Zone DestinationZone = null;
@@ -45,7 +45,7 @@ namespace Romanchuk.MoveStrategy
         public PointF DestinationPoint = new PointF(0,0);
         
 
-        public SafeMoveStrategy(double battleFieldHeight, double battleFieldWidth)
+        public SafeZoneMoveStrategy(double battleFieldHeight, double battleFieldWidth)
         {
             const int zonesInLine = 3;
             var zoneWidth = battleFieldWidth / zonesInLine;
@@ -84,7 +84,8 @@ namespace Romanchuk.MoveStrategy
 
             foreach (var e in enemies)
             {
-                var countZone = CoordsInZone(e.X, e.Y);
+                var countZone = _zones.First(z => z.InZone(e.X, e.Y));
+                
                 countZone.ThreatLevel += 1;                
             }
 
@@ -113,15 +114,6 @@ namespace Romanchuk.MoveStrategy
             DestinationPoint = CorrectPointOnBorders(point, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width*2));
             return DestinationPoint;
         }
-
-        private Zone CoordsInZone(double X, double Y)
-        {
-            return _zones.FirstOrDefault(z => z.LeftBottom.X <= X
-                                                          && z.RightTop.X >= X
-                                                          && z.LeftBottom.Y <= Y
-                                                          && z.RightTop.Y >= Y);
-        }
-
 
         private PointF CorrectPointOnBorders(PointF point, double maxX, double maxY, float safeBorderDist)
         {
