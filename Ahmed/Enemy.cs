@@ -34,7 +34,7 @@ namespace Romanchuk
         }
 
         /*
-        public double ThreatIndex
+        public double BaseThreatIndex
         {
             get { return Instance?.Distance + Instance?.Energy; }
         }
