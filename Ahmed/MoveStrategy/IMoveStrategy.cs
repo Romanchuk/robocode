@@ -1,10 +1,11 @@
 ﻿using Robocode;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace Romanchuk.MoveStrategy
 {
     public interface IMoveStrategy
     {
-        PointF SetDestination(Enemy[] enemies, Robot myRobot);
+        PointF SetDestination(IEnumerable<Enemy> enemies, Robot myRobot);
     }
 }

@@ -12,7 +12,7 @@ namespace Romanchuk.BattleStrategy
     public class RageBattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
     {
         public Enemy CurrentTarget { get; private set; }
-        public Enemy[] Enemies = {};
+        public IEnumerable<Enemy> Enemies = new Enemy[]{};
         public IMoveStrategy MoveStrategy;
 
         private readonly AdvancedRobot _robot;        
@@ -75,19 +75,27 @@ namespace Romanchuk.BattleStrategy
 
         public void ChooseTarget(IEnumerable<Enemy> enemies)
         {
-            if (enemies == null) { throw new ArgumentNullException(nameof(enemies)); }
-
-            Enemies = enemies
-                .OrderByDescending(e => e.Instance.Energy)
-                .ThenByDescending(e => e.Instance.Distance)
-                .ToArray();
-            Enemy currentTargetInEnemies = null;
-            if (CurrentTarget != null)
-            {
-                currentTargetInEnemies = Enemies.FirstOrDefault(e => e.Name.Equals(CurrentTarget.Name));
+            Enemies = enemies ?? throw new ArgumentNullException(nameof(enemies));
+            
+            var closestEnemy = enemies.Min(e => e.Instance.Distance);
+            var closestEnemies = enemies.Where(e => (e.Instance.Distance - closestEnemy) < 200);
+            var lowestEnergy = closestEnemies.Min(e => e.Instance.Energy);
+            var optimalTargets = closestEnemies
+                                                .Where(e => (e.Instance.Energy - lowestEnergy) < 10)
+                                                .OrderBy(e => e.Instance.Velocity == 0 ? 0 : 1)
+                                                .ThenBy(e =>
+                                                {
+                                                    double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
+                                                    return Math.Abs(_robot.GunHeading - absDeg);
+                                                })
+                                                .ThenBy(e => e.Instance.Velocity)
+                                                .ThenBy(e => e.LostEnergy ? 0 : 1)
+                                                .ThenBy(e => e.Instance.Distance)                                                
+                                                .ThenBy(e => e.Instance.Energy);
+            
+            if (!optimalTargets.Take(3).Any(e => e.Name.Equals(CurrentTarget?.Name))) {
+                CurrentTarget = optimalTargets.First();
             }
-            CurrentTarget = currentTargetInEnemies ?? Enemies.First();
-
         }
     
 
@@ -99,6 +107,18 @@ namespace Romanchuk.BattleStrategy
         public void Shoot()
         {
             if (CurrentTarget == null)
+            {
+                return;
+            }
+
+            var diag = Math.Sqrt(Math.Pow(_robot.BattleFieldHeight, 2) + Math.Pow(_robot.BattleFieldHeight, 2));
+            if (CurrentTarget.Instance.Distance > diag * 0.70) // Слишком далеко
+            {
+                return;
+            } else if (_robot.Energy < 10 && CurrentTarget.Instance.Distance > diag * 0.40) // Слишком далеко
+            {
+                return;
+            } else if (_robot.Energy < 0.2)
             {
                 return;
             }

@@ -20,6 +20,19 @@ namespace Romanchuk
 
         public double PreviousTurnEnergy = -1d;
 
+        public bool LostEnergy
+        {
+            get
+            {
+                if (PreviousTurnEnergy.Equals(-1d))
+                {
+                    return false;
+                }
+                var energyDiff = PreviousTurnEnergy - Instance.Energy;
+                return energyDiff > 0;
+            }
+        }
+
         public bool JustShooted
         {
             get
@@ -28,7 +41,7 @@ namespace Romanchuk
                 {
                     return false;
                 }
-                var energyDiff = Instance.Energy - PreviousTurnEnergy;
+                var energyDiff = PreviousTurnEnergy - Instance.Energy;
                 return energyDiff > 0d && energyDiff <= 3d;
             }
         }

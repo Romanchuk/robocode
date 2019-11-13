@@ -123,7 +123,7 @@ namespace Romanchuk.MoveStrategy
             _zones[8].AdjacentZones = new[] { _zones[7], _zones[5] };
         }
 
-        public PointF SetDestination(Enemy[] enemies, Robot myRobot)
+        public PointF SetDestination(IEnumerable<Enemy> enemies, Robot myRobot)
         {
             ResetZonesData();
 
@@ -145,7 +145,7 @@ namespace Romanchuk.MoveStrategy
                                distance = Math.Sqrt(Math.Pow((myRobot.X - e.GetCenterPoint().X), 2) + Math.Pow((myRobot.Y - e.GetCenterPoint().Y), 2))
                            });
 
-              var minDistZone = zones
+            var minDistZone = zones
                     .OrderBy(z => z.e.ThreatIndex)
                     .ThenBy(z => z.distance)                 
                     .First();
@@ -153,11 +153,17 @@ namespace Romanchuk.MoveStrategy
             DestinationZone = DestinationZone ?? minDistZone.e;
 
             PointF point = DestinationPoint;
-            if (minDistZone.e != DestinationZone)
+            if (enemies.Count() < 3)
+            {
+                DestinationZone = zones.OrderByDescending(z => z.e.EnemiesInZone.Count).First().e.AdjacentZones.First();
+                point = DestinationZone.GetRandomPoint();
+            }
+            else if (minDistZone.e != DestinationZone)
             {
                 DestinationZone = minDistZone.e;
                 point = DestinationZone.GetRandomPoint();
-            } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 10 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 10)
+            }
+            else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 10 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 10)
             {
                 point = DestinationZone.GetRandomPoint();
             }
