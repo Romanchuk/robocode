@@ -33,13 +33,6 @@ namespace Romanchuk
             }
         }
 
-        /*
-        public double BaseThreatIndex
-        {
-            get { return Instance?.Distance + Instance?.Energy; }
-        }
-        */
-
         public double X { get; set; }
         public double Y { get; set; }
 
@@ -104,16 +97,10 @@ namespace Romanchuk
             double xy = (x_diff * sin + y_diff * cos);
 
             // calculated time
-            double T = ((velocity * xy) + Math.Sqrt(sqr(velocity) * sqr(xy) + (sqr(x_diff) + sqr(y_diff)) * (sqr(bulletVelocity) + sqr(velocity)))) / (sqr(bulletVelocity) - sqr(velocity));
+            double T = ((velocity * xy) + Math.Sqrt(Math.Pow(velocity, 2) * Math.Pow(xy,2) + (Math.Pow(x_diff, 2) + Math.Pow(y_diff, 2) * (Math.Pow(bulletVelocity, 2) + Math.Pow(velocity, 2))))) / (Math.Pow(bulletVelocity, 2) - Math.Pow(velocity, 2));
             return T;
 
         }
-
-        private double sqr(double p)
-        {
-            return p * p;
-        }
-
 
     }
 }
