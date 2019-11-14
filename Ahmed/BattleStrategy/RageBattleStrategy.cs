@@ -15,7 +15,9 @@ namespace Romanchuk.BattleStrategy
         public IEnumerable<Enemy> Enemies = new Enemy[]{};
         public IMoveStrategy MoveStrategy;
 
-        private readonly AdvancedRobot _robot;        
+        private readonly AdvancedRobot _robot;
+
+        private long LastTimeTargetChanged = -1;
 
         public RageBattleStrategy(T robot)
         {
@@ -76,25 +78,59 @@ namespace Romanchuk.BattleStrategy
         public void ChooseTarget(IEnumerable<Enemy> enemies)
         {
             Enemies = enemies ?? throw new ArgumentNullException(nameof(enemies));
+            if (CurrentTarget != null)
+            {
+                CurrentTarget = Enemies.FirstOrDefault(e => e.Name.Equals(CurrentTarget.Name));
+            }
+
+            if (Enemies.Count() == 1)
+            {
+                CurrentTarget = Enemies.First();
+                return;
+            }
+            /*
+            if (LastTimeTargetChanged != -1 && Enemies.Any(t => t.Name.Equals(CurrentTarget?.Name)) && (_robot.Time - LastTimeTargetChanged) > 3)
+            {
+                return;
+            }
+            */
+
+            var minDistance = enemies.Min(e => e.Instance.Distance);
+            var closestEnemies = enemies.Where(e => (e.Instance.Distance - minDistance) < 200);
+            var minEnergy = closestEnemies.Min(e => e.Instance.Energy);
+            var selectedTargets = closestEnemies.Where(e => (e.Instance.Energy - minEnergy) < 10).ToArray();
+            var selectedTargetsGunDiff = selectedTargets.Select(e =>
+            {
+                double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
+                var diff = Math.Abs(_robot.GunHeading - absDeg);
+                return new
+                {
+                    e,
+                    diff
+                };
+
+            });
+            var minGunDiff = selectedTargetsGunDiff.Min(e => e.diff);
+            var criteria = new
+            {
+                energy = selectedTargets.Select(e => 1 - 1 / (e.Instance.Energy / minEnergy)).ToArray(),
+                distance = selectedTargets.Select(e => 1 - 1 / (e.Instance.Distance / minDistance)).ToArray(),
+                gunTurnDiff = selectedTargetsGunDiff.Select(e => 1 - 1 / (e.diff / minGunDiff)).ToArray()
+            };
             
-            var closestEnemy = enemies.Min(e => e.Instance.Distance);
-            var closestEnemies = enemies.Where(e => (e.Instance.Distance - closestEnemy) < 200);
-            var lowestEnergy = closestEnemies.Min(e => e.Instance.Energy);
-            var optimalTargets = closestEnemies
-                                                .Where(e => (e.Instance.Energy - lowestEnergy) < 10)
-                                                .OrderBy(e => e.Instance.Velocity == 0 ? 0 : 1)
-                                                .ThenBy(e =>
-                                                {
-                                                    double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
-                                                    return Math.Abs(_robot.GunHeading - absDeg);
-                                                })
-                                                .ThenBy(e => e.Instance.Velocity)
-                                                .ThenBy(e => e.LostEnergy ? 0 : 1)
-                                                .ThenBy(e => e.Instance.Distance)                                                
-                                                .ThenBy(e => e.Instance.Energy);
+            var optimalTargets = new (Enemy e, double c)[selectedTargets.Length];
+            for (var i = 0; i < selectedTargets.Length; i++)
+            {
+                var totalCriteria = criteria.energy[i] + criteria.distance[i] + criteria.gunTurnDiff[i]*0.2;
+                optimalTargets[i].e = selectedTargets[i];
+                optimalTargets[i].c = totalCriteria;
+            }
+            var orderedOptTargets = optimalTargets.OrderBy(o => o.c);
+
             
-            if (!optimalTargets.Take(3).Any(e => e.Name.Equals(CurrentTarget?.Name))) {
-                CurrentTarget = optimalTargets.First();
+            if (!orderedOptTargets.Take(2).Any(t => t.e.Name.Equals(CurrentTarget?.Name))) {
+                CurrentTarget = orderedOptTargets.Select(o => o.e).First();
+                LastTimeTargetChanged = _robot.Time;
             }
         }
     
