@@ -19,7 +19,7 @@ namespace Romanchuk.Helpers
         {
             double xo = x2 - x1;
             double yo = y2 - y1;
-            double hyp = PointsDistance(x1, y1, x2, y2);
+            double hyp = CalculateDistance(x1, y1, x2, y2);
             double arcSin = Utils.ToDegrees(Math.Asin(xo / hyp));
             double bearing = 0;
 
@@ -44,10 +44,17 @@ namespace Romanchuk.Helpers
         }
 
 
-        public static double PointsDistance(double x1, double y1, double x2, double y2)
+        public static double CalculateDistance(double x1, double y1, double x2, double y2)
         {
             return Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
 
         }
+
+        public static double CalculateDiagonal(double width, double height)
+        {
+            return Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height, 2));
+
+        }
+        
     }
 }

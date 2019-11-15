@@ -43,7 +43,6 @@ namespace Romanchuk.BattleStrategy
                 MoveStrategy = new SafeZoneMoveStrategy(_robot.BattleFieldHeight, _robot.BattleFieldWidth);
             }
 
-            //var turnAngle = Utils.NormalAbsoluteAngle(move(_robot.X, _robot.Y, _robot.HeadingRadians, 1, 1));
             var dest = MoveStrategy.SetDestination(Enemies, _robot);
             double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
 
@@ -52,7 +51,6 @@ namespace Romanchuk.BattleStrategy
 
             if (Math.Abs(_robot.X - dest.X) < 10 && Math.Abs(_robot.Y - dest.Y) < 10)
             {
-                //_robot.Stop();
                 return;
             }
 
@@ -146,15 +144,7 @@ namespace Romanchuk.BattleStrategy
             {
                 return;
             }
-
-            var diag = Math.Sqrt(Math.Pow(_robot.BattleFieldHeight, 2) + Math.Pow(_robot.BattleFieldHeight, 2));
-            if (CurrentTarget.Instance.Distance > diag * 0.70) // Слишком далеко
-            {
-                return;
-            } else if (_robot.Energy < 10 && CurrentTarget.Instance.Distance > diag * 0.40) // Слишком далеко
-            {
-                return;
-            } else if (_robot.Energy < 0.2)
+            if (_robot.Energy < 0.2)
             {
                 return;
             }
@@ -166,76 +156,51 @@ namespace Romanchuk.BattleStrategy
             double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
             double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
 
+            var currentGunHeadingRemaining = _robot.GunTurnRemaining;
             var angleToTurn = absDeg - _robot.GunHeading;
             _robot.SetTurnGunRight(angleToTurn);
 
- 
-            if (_robot.GunHeat == 0 && Math.Abs(_robot.GunTurnRemaining) < 0.5)
+
+            _robot.Out.WriteLine("===================");
+            _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining}; Distance:  {CurrentTarget.Instance.Distance}; Gun Heat: {_robot.GunHeat}");
+            
+            if (CurrentTarget.Instance.Distance > 500 && Math.Abs(currentGunHeadingRemaining) > 0.2)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 300 && Math.Abs(currentGunHeadingRemaining) > 0.5)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 200 && Math.Abs(currentGunHeadingRemaining) > 0.7)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 100 && Math.Abs(currentGunHeadingRemaining) > 1)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 0 && Math.Abs(currentGunHeadingRemaining) > 2)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            
+            if (_robot.GunHeat == 0)
             {
                 _robot.SetFire(bulletPower);
             }
-            
+            else
+            {
+                _robot.Out.WriteLine("Skip shoot");
+            }
         }
 
         private bool _isTurning = false;
-
-        public double move(double x, double y, double heading, int orientation, int smoothTowardEnemy)
-        {
-            _isTurning = false;
-            var WALL_STICK = 100;
-            if (_robot.Velocity >= 6)
-                WALL_STICK += 80;
-            var angle = 0.005;
-
-            double halfOfRobot = _robot.Width / 2;
-            double distanceToWallX = Math.Min(x - halfOfRobot, _robot.BattleFieldWidth - x - halfOfRobot);
-            double distanceToWallY = Math.Min(y - halfOfRobot, _robot.BattleFieldHeight - y - halfOfRobot);
-
-            double nextX = x + (Math.Sin(angle) * WALL_STICK);
-            double nextY = y + (Math.Cos(angle) * WALL_STICK);
-
-            double nextDistanceToWallX = Math.Min(nextX - halfOfRobot, _robot.BattleFieldWidth - nextX - halfOfRobot);
-            double nextDistanceToWallY = Math.Min(nextY - halfOfRobot, _robot.BattleFieldHeight - nextY - halfOfRobot);
-
-            double adjacent = 0;
-
-            if (nextDistanceToWallY <= WALL_STICK && nextDistanceToWallY < nextDistanceToWallX)
-            {
-                // wall smooth North or South wall
-                angle = (angle + (Math.PI / 2));/* / Math.PI) * Math.PI;*/
-                adjacent = Math.Abs(distanceToWallY);
-                _isTurning = true;
-            }
-            else if (nextDistanceToWallX <= WALL_STICK && nextDistanceToWallX < nextDistanceToWallY)
-            {
-                // wall smooth East or West wall
-                angle = (((angle / Math.PI)) * Math.PI) + (Math.PI / 2);
-                adjacent = Math.Abs(distanceToWallX);
-                _isTurning = true;
-            }
-            else if (distanceToWallY + halfOfRobot <= WALL_STICK || distanceToWallX + halfOfRobot <= WALL_STICK)
-            {
-                if (_robot.HeadingRadians < Math.PI / 2)
-                {
-                    angle = (angle - (Math.PI / 2));
-                }
-                else if (_robot.HeadingRadians > Math.PI / 2 && _robot.HeadingRadians < Math.PI)
-                {
-                    angle = (angle + (Math.PI / 2));
-                }
-                else if (_robot.HeadingRadians > Math.PI && _robot.HeadingRadians < Math.PI + Math.PI / 2)
-                {
-                    angle = (angle - (Math.PI / 2));
-                }
-                else if (_robot.HeadingRadians > Math.PI && _robot.HeadingRadians < Math.PI + Math.PI / 2)
-                {
-                    angle = (angle + (Math.PI / 2));
-                }
-                _isTurning = true;
-            }
-
-            return angle; // you may want to normalize this
-        }
 
 
         private double CalcBulletPower(double enemyEnergy, double enemyDistance)

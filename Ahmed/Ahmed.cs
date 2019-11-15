@@ -83,7 +83,6 @@ namespace Romanchuk
 
             _battleStrategy.ChooseTarget(
                 _enemies
-                    .Where(e => e.Value.Instance.Energy >= 0)
                     .Take(Others)
                     .Select(e => e.Value)
             );
