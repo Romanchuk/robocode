@@ -74,9 +74,14 @@ namespace Romanchuk
                 throw new Exception("There is no target instance");
             }
             var futureX = X + Math.Sin(Instance.HeadingRadians) * Instance.Velocity * momentOfTime;
+
             var xo = futureX - X;
-            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? myRobot.Width / 4 : 0);
-            return futureX; // + (xo > 0 ? 1 : -1) * bonusForDistance;
+            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
+            futureX += (xo > 0 ? 1 : -1) * bonusForDistance;
+            if (futureX < 0) { futureX = 0; }
+            if (futureX > myRobot.BattleFieldWidth) { futureX = myRobot.BattleFieldWidth; }
+
+            return futureX;
         }
 
         public double GetFutureY(long momentOfTime)
@@ -87,8 +92,12 @@ namespace Romanchuk
             }
             var futureY = Y + Math.Cos(Instance.HeadingRadians) * Instance.Velocity * momentOfTime;
             var yo = futureY - Y;
-            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? myRobot.Width / 4 : 0);
-            return futureY;// + (yo > 0 ? 1 : -1) * bonusForDistance;
+            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
+            futureY += (yo > 0 ? 1 : -1) * bonusForDistance;
+            if (futureY < 0) { futureY = 0; }
+            if (futureY > myRobot.BattleFieldHeight) { futureY = myRobot.BattleFieldHeight; }
+
+            return futureY;
         }
         // TODO: Прицеливание когда танки на одной линии
         public double GetFutureT(Robot myRobot, double bulletVelocity)
