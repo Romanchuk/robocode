@@ -44,31 +44,29 @@ namespace Romanchuk.BattleStrategy
             }
 
             var dest = MoveStrategy.SetDestination(Enemies, _robot);
-            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
 
-            var angleToTurn = absDeg - _robot.Heading;
-            _robot.SetTurnRight(angleToTurn);
-
-            if (Math.Abs(_robot.X - dest.X) < 10 && Math.Abs(_robot.Y - dest.Y) < 10)
+            if (Math.Abs(_robot.X - dest.X) > _robot.Width*2 || Math.Abs(_robot.Y - dest.Y) > _robot.Width * 2)
             {
-                return;
-            }
-
-            // var nextHeading = Robot.HeadingRadians + turnRadians;
-            if (/*lastTimeBeingHit != -1 && Robot.Time - lastTimeBeingHit < 24 || */_robot.Energy < 15 || (CurrentTarget != null && Math.Abs(CurrentTarget.Instance.BearingRadians) < 0.5))
-            {
-                if (!_isTurning)
-                {
-                    _robot.SetAhead(Rules.MAX_VELOCITY);
-                }
-                else
-                {
-                    _robot.SetAhead(Rules.MAX_VELOCITY / 2);
-                }
+                double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
+                var angleToTurn = absDeg - _robot.Heading;
+                _robot.SetTurnRight(angleToTurn);
+                _robot.SetAhead(Rules.MAX_VELOCITY / 2);
             }
             else
             {
-                _robot.SetAhead(Rules.MAX_VELOCITY / 2);
+                _robot.SetAhead(2);
+            }
+            var absTurnRemaining = Math.Abs(_robot.TurnRemaining);
+            if (absTurnRemaining >= 90)
+            {
+                _robot.SetAhead(3);
+            } else if (absTurnRemaining >= 140)
+            {
+                _robot.SetAhead(0.8);
+            }
+            else if (absTurnRemaining >= 180)
+            {
+                _robot.SetAhead(0);
             }
         }
 
@@ -86,12 +84,6 @@ namespace Romanchuk.BattleStrategy
                 CurrentTarget = Enemies.First();
                 return;
             }
-            /*
-            if (LastTimeTargetChanged != -1 && Enemies.Any(t => t.Name.Equals(CurrentTarget?.Name)) && (_robot.Time - LastTimeTargetChanged) > 3)
-            {
-                return;
-            }
-            */
 
             var minDistance = enemies.Min(e => e.Instance.Distance);
             var closestEnemies = enemies.Where(e => (e.Instance.Distance - minDistance) < 200);
