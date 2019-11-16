@@ -44,7 +44,7 @@ namespace Romanchuk.BattleStrategy
             }
 
             var dest = MoveStrategy.SetDestination(Enemies, _robot);
-            double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
+            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
 
             var angleToTurn = absDeg - _robot.Heading;
             _robot.SetTurnRight(angleToTurn);
@@ -99,7 +99,7 @@ namespace Romanchuk.BattleStrategy
             var selectedTargets = closestEnemies.Where(e => (e.Instance.Energy - minEnergy) < 10).ToArray();
             var selectedTargetsGunDiff = selectedTargets.Select(e =>
             {
-                double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
+                double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
                 var diff = Math.Abs(_robot.GunHeading - absDeg);
                 return new
                 {
@@ -150,18 +150,23 @@ namespace Romanchuk.BattleStrategy
             }
 
             double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
-            long timeToHitEnemy = (long)(CurrentTarget.Instance.Distance / ShootHelpers.CalculateBulletSpeed(bulletPower));
-
+            long timeToHitEnemy = (long)(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower));
+            _robot.Out.WriteLine("====== AIMING =======");
             double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
             double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
-            double absDeg = ShootHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
+            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
 
             var currentGunHeadingRemaining = _robot.GunTurnRemaining;
-            var angleToTurn = absDeg - _robot.GunHeading;
+            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg);
+
+            _robot.Out.WriteLine($"POSITION My: {_robot.X}, {_robot.Y}; Enemy: {futureX}, {futureY}");
+            _robot.Out.WriteLine($"Gun heading: {_robot.GunHeading}; Abs bearing: {absDeg}; Gun turn deg: {angleToTurn}");
+
+
             _robot.SetTurnGunRight(angleToTurn);
 
-
-            _robot.Out.WriteLine("===================");
+            
+            _robot.Out.WriteLine("====== SHOOTING =======");
             _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining}; Distance:  {CurrentTarget.Instance.Distance}; Gun Heat: {_robot.GunHeat}");
             
             if (CurrentTarget.Instance.Distance > 500 && Math.Abs(currentGunHeadingRemaining) > 0.2)

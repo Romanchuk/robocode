@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Robocode;
+using Romanchuk.Helpers;
 
 namespace Romanchuk.MoveStrategy
 {
@@ -142,7 +143,7 @@ namespace Romanchuk.MoveStrategy
             var zones = _zones.Select(e => new
                            {
                                e,
-                               distance = Math.Sqrt(Math.Pow((myRobot.X - e.GetCenterPoint().X), 2) + Math.Pow((myRobot.Y - e.GetCenterPoint().Y), 2))
+                               distance = MathHelpers.CalculateDistance(myRobot.X, myRobot.Y, e.GetCenterPoint().X, e.GetCenterPoint().Y)
                            });
 
             var minDistZone = zones

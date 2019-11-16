@@ -54,7 +54,7 @@
     <Compile Include="Ahmed.cs" />
     <Compile Include="BattleStrategy\IBattleStrategy.cs" />
     <Compile Include="BattleStrategy\RageBattleStrategy.cs" />
-    <Compile Include="Helpers\ShootHelpers.cs" />
+    <Compile Include="Helpers\MathHelpers.cs" />
     <Compile Include="MoveStrategy\IMoveStrategy.cs" />
     <Compile Include="MoveStrategy\SafeZoneMoveStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

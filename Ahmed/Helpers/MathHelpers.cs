@@ -3,7 +3,7 @@ using Robocode.Util;
 
 namespace Romanchuk.Helpers
 {
-    public static class ShootHelpers
+    public static class MathHelpers
     {
         public static double CalculateBulletSpeed(double firePower)
         { 
@@ -19,8 +19,8 @@ namespace Romanchuk.Helpers
         {
             double xo = x2 - x1;
             double yo = y2 - y1;
-            double hyp = CalculateDistance(x1, y1, x2, y2);
-            double arcSin = Utils.ToDegrees(Math.Asin(xo / hyp));
+            double dist = CalculateDistance(x1, y1, x2, y2);
+            double arcSin = Utils.ToDegrees(Math.Asin(xo / dist));
             double bearing = 0;
 
             if (xo > 0 && yo > 0)
@@ -54,6 +54,22 @@ namespace Romanchuk.Helpers
         {
             return Math.Sqrt(Math.Pow(width, 2) + Math.Pow(height, 2));
 
+        }
+
+        public static double TurnRightOptimalAngle(double heading, double absBearing)
+        {
+            var clockwiseDiff = absBearing - heading;
+            var сounterclockwiseDiff = heading + (360 - absBearing);
+            double angleToTurn;
+            if (Math.Abs(clockwiseDiff) < Math.Abs(сounterclockwiseDiff))
+            {
+                angleToTurn = clockwiseDiff;
+            }
+            else
+            {
+                angleToTurn = -сounterclockwiseDiff;
+            }
+            return angleToTurn;
         }
         
     }
