@@ -51,7 +51,7 @@ namespace Romanchuk.BattleStrategy
 
             var lastHitsByBullet = _bulletHits.Where(h => (_robot.Time - h.Time) < 5);
 
-            var dest = MoveStrategy.GetDestination(Enemies, lastHitsByBullet.Count() > 2);
+            var dest = MoveStrategy.GetDestination(Enemies, lastHitsByBullet.Count() >= 2);
 
             double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
             var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
