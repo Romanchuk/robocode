@@ -105,17 +105,31 @@ namespace Romanchuk.MoveStrategy
 
     public class SafeZoneMoveStrategy : IMoveStrategy
     {
+        private readonly Robot myRobot;
         private readonly Zone[] _zones = new Zone[9];
         private Zone DestinationZone = null;
 
         public PointF DestinationPoint = new PointF(0,0);
+
+        public bool UnsafeMovement
+        {
+            get
+            {
+                if (DestinationZone == null)
+                {
+                    return false;
+                }
+                return !DestinationZone.InZone(myRobot.X, myRobot.Y);
+            }
+        }
         
 
-        public SafeZoneMoveStrategy(double battleFieldHeight, double battleFieldWidth)
+        public SafeZoneMoveStrategy(Robot robot)
         {
+            myRobot = robot;
             const int zonesInLine = 3;
-            var zoneWidth = battleFieldWidth / zonesInLine;
-            var zoneHeight = battleFieldHeight / zonesInLine;
+            var zoneWidth = myRobot.BattleFieldWidth / zonesInLine;
+            var zoneHeight = myRobot.BattleFieldHeight / zonesInLine;
 
             var baseX = 0d;
             var baseY = 0d;
@@ -149,7 +163,7 @@ namespace Romanchuk.MoveStrategy
             _zones[8].AdjacentZones = new[] { _zones[7], _zones[5] };
         }
 
-        public PointF SetDestination(IEnumerable<Enemy> enemies, Robot myRobot)
+        public PointF SetDestination(IEnumerable<Enemy> enemies)
         {
             ResetZonesData();
 
@@ -183,7 +197,7 @@ namespace Romanchuk.MoveStrategy
             {
                 DestinationZone = minDistZone.e;
                 point = DestinationZone.GetRandomPoint();
-            } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 100 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 100)
+            } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 80)
             {
                 point = DestinationZone.GetPointExcept(new PointF((float)myRobot.X, (float)myRobot.Y), 100);
             } else if (enemies.Count() < 3)

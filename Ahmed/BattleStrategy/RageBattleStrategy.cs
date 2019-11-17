@@ -40,10 +40,10 @@ namespace Romanchuk.BattleStrategy
         {
             if (MoveStrategy == null)
             {
-                MoveStrategy = new SafeZoneMoveStrategy(_robot.BattleFieldHeight, _robot.BattleFieldWidth);
+                MoveStrategy = new SafeZoneMoveStrategy(_robot);
             }
 
-            var dest = MoveStrategy.SetDestination(Enemies, _robot);
+            var dest = MoveStrategy.SetDestination(Enemies);
 
             double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
             var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
@@ -56,13 +56,17 @@ namespace Romanchuk.BattleStrategy
 
             if (Math.Abs(_robot.X - dest.X) > _robot.Width*2 || Math.Abs(_robot.Y - dest.Y) > _robot.Width * 2)
             {
-                DirectionMove(angleToTurn, Rules.MAX_VELOCITY / 2);
+                DirectionMove(angleToTurn, MoveStrategy.UnsafeMovement ? Rules.MAX_VELOCITY : Rules.MAX_VELOCITY / 2);
             }
             else
             {
                 DirectionMove(angleToTurn, 2);
             }
-            
+
+            if (angleToTurn > 180)
+            {
+                _robot.SetAhead(0);
+            }
             
         }
 
