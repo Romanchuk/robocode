@@ -99,7 +99,7 @@ namespace Romanchuk
 
             return futureY;
         }
-        // TODO: Прицеливание когда танки на одной линии
+
         public double GetFutureT(Robot myRobot, double bulletVelocity)
         {
 

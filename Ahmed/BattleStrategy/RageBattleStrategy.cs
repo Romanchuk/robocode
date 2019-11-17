@@ -45,29 +45,25 @@ namespace Romanchuk.BattleStrategy
 
             var dest = MoveStrategy.SetDestination(Enemies, _robot);
 
+            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
+            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
+
+            bool backwards;
+            if (angleToTurn >= 180)
+            {
+                backwards = true;
+            }
+
             if (Math.Abs(_robot.X - dest.X) > _robot.Width*2 || Math.Abs(_robot.Y - dest.Y) > _robot.Width * 2)
             {
-                double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
-                var angleToTurn = absDeg - _robot.Heading;
-                _robot.SetTurnRight(angleToTurn);
-                _robot.SetAhead(Rules.MAX_VELOCITY / 2);
+                DirectionMove(angleToTurn, Rules.MAX_VELOCITY / 2);
             }
             else
             {
-                _robot.SetAhead(2);
+                DirectionMove(angleToTurn, 2);
             }
-            var absTurnRemaining = Math.Abs(_robot.TurnRemaining);
-            if (absTurnRemaining >= 90)
-            {
-                _robot.SetAhead(3);
-            } else if (absTurnRemaining >= 140)
-            {
-                _robot.SetAhead(0.8);
-            }
-            else if (absTurnRemaining >= 180)
-            {
-                _robot.SetAhead(0);
-            }
+            
+            
         }
 
 
@@ -92,7 +88,7 @@ namespace Romanchuk.BattleStrategy
             var selectedTargetsGunDiff = selectedTargets.Select(e =>
             {
                 double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
-                var diff = Math.Abs(_robot.GunHeading - absDeg);
+                var diff = Math.Abs(MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg));
                 return new
                 {
                     e,
@@ -227,6 +223,21 @@ namespace Romanchuk.BattleStrategy
                 return .1;
             }
             return .1;
+        }
+
+        private void DirectionMove(double forwardAngleTurn, double velocity)
+        {
+            //if (Math.Abs(forwardAngleTurn) < 180)
+            //{
+                _robot.SetTurnRight(forwardAngleTurn);
+                _robot.SetAhead(velocity);
+                /*
+            }
+            else
+            {
+                _robot.SetTurnRight(180 - Math.Abs(forwardAngleTurn));
+                _robot.SetBack(velocity);
+            }*/
         }
     }
 }
