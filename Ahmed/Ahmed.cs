@@ -91,9 +91,12 @@ namespace Romanchuk
         public override void OnRobotDeath(RobotDeathEvent e)
         {
             _enemies.Remove(e.Name);
-            if (e.Name.Equals(_battleStrategy.CurrentTarget.Name))
+            if (_battleStrategy.CurrentTarget != null)
             {
-                _battleStrategy.ResetTarget();
+                if (e.Name.Equals(_battleStrategy.CurrentTarget?.Name))
+                {
+                    _battleStrategy.ResetTarget();
+                }
             }
         }
 
