@@ -109,6 +109,11 @@ namespace Romanchuk.MoveStrategy
         private readonly Zone[] _zones = new Zone[9];
         private Zone DestinationZone = null;
 
+        private Zone CurrentZone
+        {
+            get { return _zones.First(z => z.InZone(myRobot.X, myRobot.Y)); }
+        }
+
         public PointF DestinationPoint = new PointF(0,0);
 
         public bool UnsafeMovement
@@ -163,7 +168,7 @@ namespace Romanchuk.MoveStrategy
             _zones[8].AdjacentZones = new[] { _zones[7], _zones[5] };
         }
 
-        public PointF SetDestination(IEnumerable<Enemy> enemies)
+        public PointF GetDestination(IEnumerable<Enemy> enemies, bool forceChangeDirection)
         {
             ResetZonesData();
 
@@ -179,11 +184,18 @@ namespace Romanchuk.MoveStrategy
                 }
             }
 
-            var zones = _zones.Select(e => new
+            Zone[] exeptions = {};
+            if (forceChangeDirection)
+            {
+                exeptions = new[] { CurrentZone, DestinationZone };
+            }
+            var zones = _zones.Except(exeptions).Select(e => new
                            {
                                e,
                                distance = MathHelpers.CalculateDistance(myRobot.X, myRobot.Y, e.GetCenterPoint().X, e.GetCenterPoint().Y)
                            });
+
+            
 
             var minDistZone = zones
                     .OrderBy(z => z.e.ThreatIndex)
@@ -193,6 +205,7 @@ namespace Romanchuk.MoveStrategy
             DestinationZone = DestinationZone ?? minDistZone.e;
 
             PointF point = DestinationPoint;
+            
             if (minDistZone.e != DestinationZone)
             {
                 DestinationZone = minDistZone.e;

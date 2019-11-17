@@ -12,12 +12,12 @@ namespace Romanchuk.BattleStrategy
     public class RageBattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
     {
         public Enemy CurrentTarget { get; private set; }
+
         public IEnumerable<Enemy> Enemies = new Enemy[]{};
         public IMoveStrategy MoveStrategy;
 
         private readonly AdvancedRobot _robot;
-
-        private long LastTimeTargetChanged = -1;
+        private IEnumerable<HitByBulletEvent> _bulletHits;
 
         public RageBattleStrategy(T robot)
         {
@@ -36,6 +36,11 @@ namespace Romanchuk.BattleStrategy
             ));
         }
 
+        public void AttachHitByBulletEvents(IEnumerable<HitByBulletEvent> bulletHits)
+        {
+            _bulletHits = bulletHits;
+        }
+
         public void Move()
         {
             if (MoveStrategy == null)
@@ -43,16 +48,13 @@ namespace Romanchuk.BattleStrategy
                 MoveStrategy = new SafeZoneMoveStrategy(_robot);
             }
 
-            var dest = MoveStrategy.SetDestination(Enemies);
+
+            var lastHitsByBullet = _bulletHits.Where(h => (_robot.Time - h.Time) < 5);
+
+            var dest = MoveStrategy.GetDestination(Enemies, lastHitsByBullet.Count() > 2);
 
             double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
             var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
-
-            bool backwards;
-            if (angleToTurn >= 180)
-            {
-                backwards = true;
-            }
 
             if (Math.Abs(_robot.X - dest.X) > _robot.Width*2 || Math.Abs(_robot.Y - dest.Y) > _robot.Width * 2)
             {
@@ -120,7 +122,6 @@ namespace Romanchuk.BattleStrategy
             
             if (!orderedOptTargets.Take(2).Any(t => t.e.Name.Equals(CurrentTarget?.Name))) {
                 CurrentTarget = orderedOptTargets.Select(o => o.e).First();
-                LastTimeTargetChanged = _robot.Time;
             }
         }
     
@@ -196,8 +197,6 @@ namespace Romanchuk.BattleStrategy
                 _robot.Out.WriteLine("Skip shoot");
             }
         }
-
-        private bool _isTurning = false;
 
 
         private double CalcBulletPower(double enemyEnergy, double enemyDistance)

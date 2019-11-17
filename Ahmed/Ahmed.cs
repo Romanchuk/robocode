@@ -12,25 +12,29 @@ namespace Romanchuk
 
         private readonly IBattleStrategy _battleStrategy;
 
-        private long lastTimeBeingHit = -1;
+        private List<HitByBulletEvent> _bulletHitEvents;
 
         public Ahmed()
         {
-            _battleStrategy = new RageBattleStrategy<Ahmed>(this); 
+            _battleStrategy = new RageBattleStrategy<Ahmed>(this);
         }
 
-        public override void Run() {
+        public override void Run()
+        {
             IsAdjustGunForRobotTurn = true;
             IsAdjustRadarForRobotTurn = true;
 
             _enemies = new Dictionary<string, Enemy>();
+            _bulletHitEvents = new List<HitByBulletEvent>();
+            _battleStrategy.AttachHitByBulletEvents(_bulletHitEvents);
             _battleStrategy.ResetTarget();
 
 
             int colorIteration = 1;
             SetAllColors(Color.Black);
 
-            while (true) {
+            while (true)
+            {
 
 
                 SetAllColors(Color.Black);
@@ -79,6 +83,7 @@ namespace Romanchuk
             {
                 _enemies[ev.Name] = new Enemy(this);
             }
+
             _enemies[ev.Name].Update(ev);
 
             _battleStrategy.ChooseTarget(
@@ -102,10 +107,7 @@ namespace Romanchuk
 
         public override void OnHitByBullet(HitByBulletEvent e)
         {
-            lastTimeBeingHit = e.Time;
-
-            // e.Bullet.Victim
+            _bulletHitEvents.Add(e);
         }
-
     }
 }

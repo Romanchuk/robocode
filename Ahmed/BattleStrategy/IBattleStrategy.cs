@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Robocode;
 
 namespace Romanchuk.BattleStrategy
 {
@@ -15,5 +16,7 @@ namespace Romanchuk.BattleStrategy
         void ResetTarget();
 
         Enemy CurrentTarget { get; }
+
+        void AttachHitByBulletEvents(IEnumerable<HitByBulletEvent> bulletHits);
     }
 }
