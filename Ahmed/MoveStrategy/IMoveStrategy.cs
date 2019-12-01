@@ -6,7 +6,7 @@ namespace Romanchuk.MoveStrategy
 {
     public interface IMoveStrategy
     {
-        PointF GetDestination(IEnumerable<Enemy> enemies, bool forceChangeDirection);
+        PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection);
         bool UnsafeMovement { get; }
     }
 }

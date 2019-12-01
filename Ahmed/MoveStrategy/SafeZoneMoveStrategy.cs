@@ -168,7 +168,7 @@ namespace Romanchuk.MoveStrategy
             _zones[8].AdjacentZones = new[] { _zones[7], _zones[5] };
         }
 
-        public PointF GetDestination(IEnumerable<Enemy> enemies, bool forceChangeDirection)
+        public PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
         {
             ResetZonesData();
 

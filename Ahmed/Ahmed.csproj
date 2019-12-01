@@ -41,7 +41,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="robocode">
-      <HintPath>..\..\..\..\robocode\libs\robocode.dll</HintPath>
+      <HintPath>F:\robocode\libs\robocode.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -56,6 +56,7 @@
     <Compile Include="BattleStrategy\RageBattleStrategy.cs" />
     <Compile Include="Helpers\MathHelpers.cs" />
     <Compile Include="MoveStrategy\IMoveStrategy.cs" />
+    <Compile Include="MoveStrategy\SpiralMoveStrategy.cs" />
     <Compile Include="MoveStrategy\SafeZoneMoveStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Enemy.cs" />
