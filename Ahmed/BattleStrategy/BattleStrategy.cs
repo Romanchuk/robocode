@@ -9,7 +9,7 @@ using Romanchuk.MoveStrategy;
 
 namespace Romanchuk.BattleStrategy
 {
-    public class RageBattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
+    public class BattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
     {
         public Enemy CurrentTarget { get; private set; }
 
@@ -19,21 +19,48 @@ namespace Romanchuk.BattleStrategy
         private readonly AdvancedRobot _robot;
         private IEnumerable<HitByBulletEvent> _bulletHits;
 
-        public RageBattleStrategy(T robot)
+        private (IMoveStrategy SafeZone, IMoveStrategy Spiral, IMoveStrategy Rage) _moveStrategiesTuple;
+        
+        bool UnderAttack
+        {
+            get
+            {
+                if (_bulletHits == null || _robot == null)
+                {
+                    return false;
+                }
+                return _bulletHits.Any(b => b.Time >= _robot.Time - 3);
+            }
+        }
+
+        public BattleStrategy(T robot)
         {
             _robot = robot;
         }
 
+        public void Init()
+        {
+            _moveStrategiesTuple.SafeZone = new SafeZoneMoveStrategy(_robot);
+            _moveStrategiesTuple.Spiral = new SpiralMoveStrategy(_robot);
+            _moveStrategiesTuple.Rage = new RageMoveStrategy(_robot);
+        }
+
         public void ChangeColor(ref int colorIteration)
         {
-            const double frequency = .3;
-            colorIteration++;
-            if (colorIteration > 32) { colorIteration = 0; }
-            _robot.SetAllColors(Color.FromArgb(
-                (byte)(Math.Sin(frequency * colorIteration + 0) * 127 + 128),
-                (byte)(Math.Sin(frequency * colorIteration + 2) * 127 + 128),
-                (byte)(Math.Sin(frequency * colorIteration + 4) * 127 + 128)
-            ));
+            if (MoveStrategy != null && MoveStrategy == _moveStrategiesTuple.Rage) {
+                const double frequency = .3;
+                colorIteration++;
+                if (colorIteration > 32) { colorIteration = 0; }
+                _robot.SetAllColors(Color.FromArgb(
+                    (byte)(Math.Sin(frequency * colorIteration + 0) * 127 + 128),
+                    (byte)(Math.Sin(frequency * colorIteration + 2) * 127 + 128),
+                    (byte)(Math.Sin(frequency * colorIteration + 4) * 127 + 128)
+                ));
+            }
+            else
+            {
+                _robot.SetAllColors(Color.DeepPink);
+            }
         }
 
         public void AttachHitByBulletEvents(IEnumerable<HitByBulletEvent> bulletHits)
@@ -43,48 +70,30 @@ namespace Romanchuk.BattleStrategy
 
         public void Move()
         {
-            /*
-            if (MoveStrategy == null)
+            if (_robot.Others <= 2 && CurrentTarget != null)
             {
-                MoveStrategy = new SafeZoneMoveStrategy(_robot);
-            }
-
-
-            var lastHitsByBullet = _bulletHits.Where(h => (_robot.Time - h.Time) < 5);
-
-            var dest = MoveStrategy.GetDestination(Enemies, CurrentTarget, lastHitsByBullet.Count() >= 2);
-
-            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
-            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
-
-            if (Math.Abs(_robot.X - dest.X) > _robot.Width*2 || Math.Abs(_robot.Y - dest.Y) > _robot.Width * 2)
-            {
-                DirectionMove(angleToTurn, MoveStrategy.UnsafeMovement ? Rules.MAX_VELOCITY : Rules.MAX_VELOCITY / 2);
+                var easyToKillSolo = _robot.Others == 1 &&
+                                     _robot.Energy - 10 > CurrentTarget.Instance.Energy &&
+                                    CurrentTarget.Instance.Distance < 300;
+                var safeToRage = _robot.Others > 1 &&
+                                 _robot.Energy > 60 &&
+                                 _robot.Energy - 30 > CurrentTarget.Instance.Energy;
+                if (easyToKillSolo || safeToRage)
+                {
+                    MoveStrategy = _moveStrategiesTuple.Rage;
+                }
+                else
+                {
+                    MoveStrategy = _moveStrategiesTuple.Spiral;
+                }
             }
             else
             {
-                DirectionMove(angleToTurn, 2);
+                MoveStrategy = _moveStrategiesTuple.SafeZone;
             }
-
-            if (angleToTurn > 180)
-            {
-                _robot.SetAhead(0);
-            }*/
-            if (MoveStrategy == null)
-            {
-                MoveStrategy = new SpiralMoveStrategy(_robot);
-            }
-            var dest = MoveStrategy.GetDestination(Enemies, CurrentTarget, false);
-            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, dest.X, dest.Y);
-            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.Heading, absDeg);
-            if (Math.Abs(angleToTurn) > 180)
-            {
-                DirectionMove(angleToTurn, 0);
-            } else
-            {
-                DirectionMove(angleToTurn, MoveStrategy.UnsafeMovement ? Rules.MAX_VELOCITY : Rules.MAX_VELOCITY / 2);
-            }
-            
+            _robot.Out.WriteLine("====== AIMING =======");
+            _robot.Out.WriteLine($"MoveStrategy {MoveStrategy.GetType().Name}");
+            MoveStrategy.Move(Enemies, CurrentTarget, UnderAttack);
         }
 
 
@@ -162,10 +171,11 @@ namespace Romanchuk.BattleStrategy
             _robot.Out.WriteLine("====== AIMING =======");
             double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
             double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
+
             double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
+            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg);
 
             var currentGunHeadingRemaining = _robot.GunTurnRemaining;
-            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg);
 
             _robot.Out.WriteLine($"POSITION My: {_robot.X}, {_robot.Y}; Enemy: {futureX}, {futureY}");
             _robot.Out.WriteLine($"Gun heading: {_robot.GunHeading}; Abs bearing: {absDeg}; Gun turn deg: {angleToTurn}");

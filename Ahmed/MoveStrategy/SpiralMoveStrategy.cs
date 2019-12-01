@@ -10,19 +10,13 @@ namespace Romanchuk.MoveStrategy
 
     public class SpiralMoveStrategy : IMoveStrategy
     {
-        private readonly Robot myRobot;
+        private readonly AdvancedRobot myRobot;
        
         public PointF DestinationPoint = new PointF(0,0);
 
-        public bool UnsafeMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        
-        public SpiralMoveStrategy(Robot robot)
+        public bool UnsafeMovement => true;
+
+        public SpiralMoveStrategy(AdvancedRobot robot)
         {
             myRobot = robot;
             const int zonesInLine = 3;
@@ -44,10 +38,39 @@ namespace Romanchuk.MoveStrategy
             if (DestinationPoint == center || Math.Abs(DestinationPoint.X - myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 80)
             {
                 var points = GetSpiralPoints(targetPoint, 7, 0, (float)distance);
+                /*
+                
+                IGraphics g = myRobot.Graphics;
+                var pen = new Pen(Color.DeepPink);
+                foreach (var pt in points)
+                {
+                    g.DrawEllipse(pen, (int)(pt.X), (int)pt.Y, 10, 10);
+                }*/
+                
                 var p = points.FirstOrDefault(pp => Math.Abs(pp.X - myRobot.X) < myRobot.Width && Math.Abs(pp.X - myRobot.X) < myRobot.Width);
                 DestinationPoint = p.IsEmpty ? points[0] : p;
             }
-            return DestinationPoint;
+            return MathHelpers.CorrectPointOnBorders(DestinationPoint, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width * 2));
+        }
+
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
+        {
+            var dest = GetDestination(enemies, currentTarget, false);
+            var angleToTurn = MathHelpers.TurnRobotToPoint(myRobot, dest);
+
+            myRobot.SetTurnRight(angleToTurn);
+            if (Math.Abs(angleToTurn) < 40)
+            {
+                myRobot.SetAhead(Rules.MAX_VELOCITY);
+            }
+            else if (Math.Abs(angleToTurn) < 90)
+            {
+                myRobot.SetAhead(Rules.MAX_VELOCITY / 2);
+            }
+            else
+            {
+                myRobot.SetAhead(Rules.MAX_VELOCITY / 4);
+            }
         }
 
         // Return points that define a spiral.

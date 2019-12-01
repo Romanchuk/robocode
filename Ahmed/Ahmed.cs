@@ -16,7 +16,7 @@ namespace Romanchuk
 
         public Ahmed()
         {
-            _battleStrategy = new RageBattleStrategy<Ahmed>(this);
+            _battleStrategy = new BattleStrategy<Ahmed>(this);
         }
 
         public override void Run()
@@ -26,18 +26,19 @@ namespace Romanchuk
 
             _enemies = new Dictionary<string, Enemy>();
             _bulletHitEvents = new List<HitByBulletEvent>();
+            _battleStrategy.Init();
             _battleStrategy.AttachHitByBulletEvents(_bulletHitEvents);
             _battleStrategy.ResetTarget();
 
 
             int colorIteration = 1;
-            SetAllColors(Color.Black);
+            _battleStrategy.ChangeColor(ref colorIteration);
 
             while (true)
             {
 
 
-                SetAllColors(Color.Black);
+                // SetAllColors(Color.Black);
                 Out.WriteLine($"----------------------------");
                 SetTurnRadarRight(Rules.RADAR_TURN_RATE);
 
@@ -108,6 +109,19 @@ namespace Romanchuk
         public override void OnHitByBullet(HitByBulletEvent e)
         {
             _bulletHitEvents.Add(e);
+        }
+
+        public override void OnPaint(IGraphics g)
+        {
+            /*
+            var pen = new Pen(Color.DeepPink);
+            g.DrawEllipse(pen, _destination.X, _destination.Y, 10, 10);
+            
+            foreach (var pt in points)
+            {
+                
+            }
+            */
         }
     }
 }

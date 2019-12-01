@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using Robocode;
 using Robocode.Util;
 
 namespace Romanchuk.Helpers
@@ -78,6 +79,35 @@ namespace Romanchuk.Helpers
             }
             return angleToTurn;
         }
-        
+
+        public static double TurnRobotToPoint(AdvancedRobot myRobot, PointF dest)
+        {
+            var absDeg = AbsoluteBearingDegrees(myRobot.X, myRobot.Y, dest.X, dest.Y);
+            return TurnRightOptimalAngle(myRobot.Heading, absDeg);
+        }
+
+        public static PointF CorrectPointOnBorders(PointF point, double maxX, double maxY, float safeBorderDist)
+        {
+            float newX = point.X;
+            float newY = point.Y;
+            if (point.X < safeBorderDist)
+            {
+                newX = safeBorderDist;
+            }
+            if (point.Y < safeBorderDist)
+            {
+                newY = safeBorderDist;
+            }
+            if (maxX - point.X < safeBorderDist)
+            {
+                newX = (float)maxX - safeBorderDist;
+            }
+            if (maxY - point.Y < safeBorderDist)
+            {
+                newY = (float)maxY - safeBorderDist;
+            }
+            return new PointF(newX, newY);
+        }
+
     }
 }

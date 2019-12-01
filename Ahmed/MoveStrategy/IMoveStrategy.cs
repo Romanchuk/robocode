@@ -8,5 +8,6 @@ namespace Romanchuk.MoveStrategy
     {
         PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection);
         bool UnsafeMovement { get; }
+        void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack);
     }
 }

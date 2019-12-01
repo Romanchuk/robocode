@@ -105,7 +105,7 @@ namespace Romanchuk.MoveStrategy
 
     public class SafeZoneMoveStrategy : IMoveStrategy
     {
-        private readonly Robot myRobot;
+        private readonly AdvancedRobot myRobot;
         private readonly Zone[] _zones = new Zone[9];
         private Zone DestinationZone = null;
 
@@ -129,7 +129,7 @@ namespace Romanchuk.MoveStrategy
         }
         
 
-        public SafeZoneMoveStrategy(Robot robot)
+        public SafeZoneMoveStrategy(AdvancedRobot robot)
         {
             myRobot = robot;
             const int zonesInLine = 3;
@@ -213,7 +213,7 @@ namespace Romanchuk.MoveStrategy
             } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 80)
             {
                 point = DestinationZone.GetPointExcept(new PointF((float)myRobot.X, (float)myRobot.Y), 100);
-            } else if (enemies.Count() < 3)
+            } else
             {
                 DestinationZone = zones
                     .OrderByDescending(z => z.e.EnemiesInZone.Count)
@@ -222,39 +222,29 @@ namespace Romanchuk.MoveStrategy
                         .First();
                 point = DestinationZone.GetRandomPoint();
             }
-            DestinationPoint = CorrectPointOnBorders(point, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width*2));
+            DestinationPoint = MathHelpers.CorrectPointOnBorders(point, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width*2));
             return DestinationPoint;
         }
 
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
+        {
+            var dest = GetDestination(enemies, currentTarget, false);
+            var angleToTurn = MathHelpers.TurnRobotToPoint(myRobot, dest);
+
+            myRobot.SetTurnRight(angleToTurn);
+            double velocity = 0;
+            if (Math.Abs(angleToTurn) < 180)
+            {
+                velocity = UnsafeMovement || underAttack ? Rules.MAX_VELOCITY : Rules.MAX_VELOCITY / 2;
+            }
+            myRobot.SetAhead(velocity);
+        }
         private void ResetZonesData()
         {
-            for (var i = 0; i < _zones.Length; i++)
+            foreach (var z in _zones)
             {
-                _zones[i].EnemiesInZone = new List<Enemy>();
+                z.EnemiesInZone = new List<Enemy>();
             }
-        }
-
-        private PointF CorrectPointOnBorders(PointF point, double maxX, double maxY, float safeBorderDist)
-        {
-            float newX = point.X;
-            float newY = point.Y;
-            if (point.X < safeBorderDist)
-            {
-                newX = safeBorderDist;
-            }
-            if (point.Y < safeBorderDist)
-            {
-                newY = safeBorderDist;
-            }
-            if (maxX - point.X < safeBorderDist)
-            {
-                newX = safeBorderDist;
-            }
-            if (maxY - point.Y < safeBorderDist)
-            {
-                newY = safeBorderDist;
-            }
-            return new PointF(newX, newY);
         }
 
     }

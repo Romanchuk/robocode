@@ -5,6 +5,7 @@ namespace Romanchuk.BattleStrategy
 {
     public interface IBattleStrategy
     {
+        void Init();
         void Shoot();
 
         void ChangeColor(ref int colorIteration);
