@@ -1,5 +1,4 @@
 ﻿using Robocode;
-using System.Drawing;
 using System.Linq;
 using System.Collections.Generic;
 using Romanchuk.BattleStrategy;
@@ -41,26 +40,6 @@ namespace Romanchuk
                 // SetAllColors(Color.Black);
                 Out.WriteLine($"----------------------------");
                 SetTurnRadarRight(Rules.RADAR_TURN_RATE);
-
-                /*
-                if (RageTarget == null || Energy <= 10) {
-                */
-
-                // SetTurnRight(turnRadians);
-                /*
-                } else {
-                    Out.WriteLine($"Enemy ({RageTarget.Name})");
-                    ChangeColor(ref colorIteration);
-                    // SetTurnRightRadians(RageTarget.BearingRadians);
-                    var turnGunRadians = GetDiffTargetAndGunRadians(RageTarget.BearingRadians, true);
-                    SetTurnGunRightRadians(turnGunRadians);
-                    if (Math.Abs(turnGunRadians) < 0.15)
-                    {
-                        SetAdjustedFire(RageTarget.Energy, RageTarget.Distance);
-                    }
-                /* 
-            */
-
                 _battleStrategy.ChangeColor(ref colorIteration);
                 _battleStrategy.Move();
                 _battleStrategy.Shoot();

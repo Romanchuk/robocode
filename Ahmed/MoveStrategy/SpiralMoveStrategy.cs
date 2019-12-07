@@ -10,98 +10,104 @@ namespace Romanchuk.MoveStrategy
 
     public class SpiralMoveStrategy : IMoveStrategy
     {
-        private readonly AdvancedRobot myRobot;
-       
-        public PointF DestinationPoint = new PointF(0,0);
+        private readonly AdvancedRobot _myRobot;
+        private readonly PointF _centerPoint;
+
+        public PointF DestinationPoint;
 
         public bool UnsafeMovement => true;
 
+        private const float MaxRadius = 280;
+        private float CurrentMoveRadius = MaxRadius;
+
         public SpiralMoveStrategy(AdvancedRobot robot)
         {
-            myRobot = robot;
-            const int zonesInLine = 3;
-            var zoneWidth = myRobot.BattleFieldWidth / zonesInLine;
-            var zoneHeight = myRobot.BattleFieldHeight / zonesInLine;
+            _myRobot = robot;
+            DestinationPoint = _centerPoint =
+                new PointF((float) _myRobot.BattleFieldWidth / 2, (float) _myRobot.BattleFieldHeight / 2);
+            if (_myRobot.Others == 1)
+            {
+                CurrentMoveRadius = 220;
+            }
         }
 
         public PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
         {
-            var center = new PointF((float)myRobot.BattleFieldWidth / 2, (float)myRobot.BattleFieldHeight / 2);
             if (currentTarget == null)
             {
-                DestinationPoint = center;
+                DestinationPoint = _centerPoint;
                 return DestinationPoint;
             }
-            var currentPoint = new PointF((float)myRobot.X, (float)myRobot.Y);
+            var currentPoint = new PointF((float)_myRobot.X, (float)_myRobot.Y);
             var targetPoint = new PointF((float)currentTarget.X, (float)currentTarget.Y);
-            var distance = MathHelpers.CalculateDistance(targetPoint, currentPoint);
-            if (DestinationPoint == center || Math.Abs(DestinationPoint.X - myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 80)
+
+            float allowedDiff = 80;
+
+            var achievedPoint = AchievedPoint(DestinationPoint, currentPoint, allowedDiff);
+
+            if (DestinationPoint == _centerPoint || achievedPoint)
             {
-                var points = GetSpiralPoints(targetPoint, 7, 0, (float)distance);
-                /*
+                var points = GetRoundPoints(targetPoint);
                 
-                IGraphics g = myRobot.Graphics;
-                var pen = new Pen(Color.DeepPink);
-                foreach (var pt in points)
-                {
-                    g.DrawEllipse(pen, (int)(pt.X), (int)pt.Y, 10, 10);
-                }*/
-                
-                var p = points.FirstOrDefault(pp => Math.Abs(pp.X - myRobot.X) < myRobot.Width && Math.Abs(pp.X - myRobot.X) < myRobot.Width);
-                DestinationPoint = p.IsEmpty ? points[0] : p;
+                var p = points
+                    .FirstOrDefault(pp => !AchievedPoint(pp, currentPoint, allowedDiff));
+                var newPoint = p.IsEmpty ? points.First() : p;
+
+                DestinationPoint = MathHelpers.CorrectPointOnBorders(newPoint, _myRobot.BattleFieldWidth,
+                    _myRobot.BattleFieldHeight, allowedDiff);
             }
-            return MathHelpers.CorrectPointOnBorders(DestinationPoint, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width * 2));
+            return DestinationPoint;
+        }
+
+        private bool AchievedPoint(PointF destPoint, PointF curPoint, float allowedDiff)
+        {
+            return Math.Abs(destPoint.X - curPoint.X) <= allowedDiff &&
+                   Math.Abs(destPoint.Y - curPoint.Y) <= allowedDiff;
         }
 
         public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
         {
             var dest = GetDestination(enemies, currentTarget, false);
-            var angleToTurn = MathHelpers.TurnRobotToPoint(myRobot, dest);
+            var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
-            myRobot.SetTurnRight(angleToTurn);
+            _myRobot.SetTurnRight(angleToTurn);
             if (Math.Abs(angleToTurn) < 40)
             {
-                myRobot.SetAhead(Rules.MAX_VELOCITY);
+                _myRobot.SetAhead(Config.MaxDistancePerTurn);
             }
             else if (Math.Abs(angleToTurn) < 90)
             {
-                myRobot.SetAhead(Rules.MAX_VELOCITY / 2);
+                _myRobot.SetAhead(Config.MaxDistancePerTurn / 2);
             }
             else
             {
-                myRobot.SetAhead(Rules.MAX_VELOCITY / 4);
+                _myRobot.SetAhead(Config.MaxDistancePerTurn / 4);
             }
         }
 
-        // Return points that define a spiral.
-        private List<PointF> GetSpiralPoints(
-            PointF center, float A,
-            float angle_offset, float max_r)
+        private IEnumerable<PointF> GetRoundPoints(PointF target)
         {
             // Get the points.
             List<PointF> points = new List<PointF>();
-            const float dtheta = (float)(5 * Math.PI / 180);    // Five degrees.
-            for (float theta = 0; ; theta += dtheta)
+            const float angleStep = 20;    // 20 degrees.
+            for (float theta = 0; theta <= 360; theta += angleStep)
             {
-                // Calculate r.
-                float r = A * theta;
-
                 // Convert to Cartesian coordinates.
                 float x, y;
-                PolarToCartesian(r, theta + angle_offset, out x, out y);
+                PolarToCartesian(CurrentMoveRadius, theta, out x, out y);
 
                 // Center.
-                x += center.X;
-                y += center.Y;
+                x += target.X;
+                y += target.Y;
 
                 // Create the point.
                 points.Add(new PointF((float)x, (float)y));
-
-                // If we have gone far enough, stop.
-                if (r > max_r) break;
             }
-            return points;
+
+            return points
+                .OrderBy(b => Math.Abs(MathHelpers.TurnRobotToPoint(_myRobot, b)));
         }
+
 
 
         // Convert polar coordinates into Cartesian coordinates.

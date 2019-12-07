@@ -78,7 +78,7 @@ namespace Romanchuk.BattleStrategy
                 var safeToRage = _robot.Others > 1 &&
                                  _robot.Energy > 60 &&
                                  _robot.Energy - 30 > CurrentTarget.Instance.Energy;
-                if (easyToKillSolo || safeToRage)
+                if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage)
                 {
                     MoveStrategy = _moveStrategiesTuple.Rage;
                 }

@@ -4,114 +4,20 @@ using System.Drawing;
 using System.Linq;
 using Robocode;
 using Romanchuk.Helpers;
+using Romanchuk.MoveStrategy.Class;
 
 namespace Romanchuk.MoveStrategy
 {
 
-    class Zone
-    {
-        const double BASE_THREAT = 0.25;
-        public Zone(PointF leftBottom, PointF rightTop)
-        {
-            LeftBottom = leftBottom;
-            RightTop = rightTop;
-        }
-
-        public PointF LeftBottom;
-        public PointF RightTop;
-
-        public Zone[] AdjacentZones { get; set; }
-        public List<Enemy> EnemiesInZone { get; set; } = new List<Enemy>();
-
-        public double ThreatIndex
-        {
-            get
-            {
-                double enemiesThreat = 0;
-                foreach (var e in EnemiesInZone)
-                {
-                    if (e.Instance.Energy < 18 && EnemiesInZone.Count == 1)
-                    {
-                        enemiesThreat += -(BASE_THREAT * 1.5);
-                    }
-                    else if (e.Instance.Energy < 20 && EnemiesInZone.Count > 1)
-                    {
-                        enemiesThreat += -BASE_THREAT/2;
-                    }
-                    else if (e.Instance.Energy < 30)
-                    {
-                        enemiesThreat += BASE_THREAT/2;
-                    }
-                    else if (e.Instance.Energy < 40)
-                    {
-                        enemiesThreat += BASE_THREAT;
-                    }
-                    else
-                    {
-                        enemiesThreat += BASE_THREAT * 2;
-                    }
-                }
-
-                double adjacentZonesThreat = AdjacentZones.Select(z => (double) z.EnemiesInZone.Count)
-                    .Aggregate((c, r) => c * 0.1);
-
-                return BaseThreatIndex + enemiesThreat + adjacentZonesThreat;
-            }
-        }
-
-        public PointF GetCenterPoint()
-        {
-            return new PointF(RightTop.X - (RightTop.X - LeftBottom.X)/2, RightTop.Y - (RightTop.Y - LeftBottom.Y)/2);
-        }
-
-        public PointF GetRandomPoint()
-        {
-            var rand = new Random();
-            return new PointF(rand.Next((int)LeftBottom.X, (int)RightTop.X), rand.Next((int)LeftBottom.Y, (int)RightTop.Y));
-        }
-
-        public PointF GetPointExcept(PointF currentPos, double minDist)
-        {
-            var lbDist = MathHelpers.CalculateDistance(currentPos, LeftBottom);
-            var rtDist = MathHelpers.CalculateDistance(currentPos, RightTop);
-            var rand = new Random();
-            if (lbDist > rtDist)
-            {
-                var newX = (int) (currentPos.X - minDist);
-                var newY = (int) (currentPos.Y - minDist);
-                return new PointF(
-                    rand.Next((int)LeftBottom.X, (int)(newX < LeftBottom.X ? LeftBottom.X : newX )),
-                    rand.Next((int)LeftBottom.Y, (int)(newY < LeftBottom.Y ? LeftBottom.Y : newY ))
-                );
-            }
-            else
-            {
-                var newX = (int)(currentPos.X + minDist);
-                var newY = (int)(currentPos.Y + minDist);
-                return new PointF(
-                    rand.Next((int)(newX > RightTop.X ? RightTop.X : newX), (int)RightTop.X), 
-                    rand.Next((int)(newY > RightTop.Y ? RightTop.Y : newY), (int)RightTop.Y)
-                );
-            }
-        }
-
-        public bool InZone(double x, double y)
-        {
-            return RightTop.X >= x && RightTop.Y >= y&& LeftBottom.X <= x && LeftBottom.Y <= y;
-        }
-
-        public double BaseThreatIndex => AdjacentZones.Length * BASE_THREAT;
-    }
-
     public class SafeZoneMoveStrategy : IMoveStrategy
     {
-        private readonly AdvancedRobot myRobot;
+        private readonly AdvancedRobot _myRobot;
         private readonly Zone[] _zones = new Zone[9];
-        private Zone DestinationZone = null;
+        private Zone _destinationZone;
 
         private Zone CurrentZone
         {
-            get { return _zones.First(z => z.InZone(myRobot.X, myRobot.Y)); }
+            get { return _zones.First(z => z.InZone(_myRobot.X, _myRobot.Y)); }
         }
 
         public PointF DestinationPoint = new PointF(0,0);
@@ -120,21 +26,21 @@ namespace Romanchuk.MoveStrategy
         {
             get
             {
-                if (DestinationZone == null)
+                if (_destinationZone == null)
                 {
                     return false;
                 }
-                return !DestinationZone.InZone(myRobot.X, myRobot.Y);
+                return !_destinationZone.InZone(_myRobot.X, _myRobot.Y);
             }
         }
         
 
         public SafeZoneMoveStrategy(AdvancedRobot robot)
         {
-            myRobot = robot;
+            _myRobot = robot;
             const int zonesInLine = 3;
-            var zoneWidth = myRobot.BattleFieldWidth / zonesInLine;
-            var zoneHeight = myRobot.BattleFieldHeight / zonesInLine;
+            var zoneWidth = _myRobot.BattleFieldWidth / zonesInLine;
+            var zoneHeight = _myRobot.BattleFieldHeight / zonesInLine;
 
             var baseX = 0d;
             var baseY = 0d;
@@ -187,12 +93,12 @@ namespace Romanchuk.MoveStrategy
             Zone[] exeptions = {};
             if (forceChangeDirection)
             {
-                exeptions = new[] { CurrentZone, DestinationZone };
+                exeptions = new[] { CurrentZone, _destinationZone };
             }
             var zones = _zones.Except(exeptions).Select(e => new
                            {
                                e,
-                               distance = MathHelpers.CalculateDistance(myRobot.X, myRobot.Y, e.GetCenterPoint().X, e.GetCenterPoint().Y)
+                               distance = MathHelpers.CalculateDistance(_myRobot.X, _myRobot.Y, e.GetCenterPoint().X, e.GetCenterPoint().Y)
                            });
 
             
@@ -202,42 +108,42 @@ namespace Romanchuk.MoveStrategy
                     .ThenBy(z => z.distance)                 
                     .First();
 
-            DestinationZone = DestinationZone ?? minDistZone.e;
+            _destinationZone = _destinationZone ?? minDistZone.e;
 
             PointF point = DestinationPoint;
             
-            if (minDistZone.e != DestinationZone)
+            if (minDistZone.e != _destinationZone)
             {
-                DestinationZone = minDistZone.e;
-                point = DestinationZone.GetRandomPoint();
-            } else if (Math.Abs(DestinationPoint.X - myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - myRobot.Y) <= 80)
+                _destinationZone = minDistZone.e;
+                point = _destinationZone.GetRandomPoint();
+            } else if (Math.Abs(DestinationPoint.X - _myRobot.X) <= 80 && Math.Abs(DestinationPoint.Y - _myRobot.Y) <= 80)
             {
-                point = DestinationZone.GetPointExcept(new PointF((float)myRobot.X, (float)myRobot.Y), 100);
+                point = _destinationZone.GetPointExcept(new PointF((float)_myRobot.X, (float)_myRobot.Y), 100);
             } else
             {
-                DestinationZone = zones
+                _destinationZone = zones
                     .OrderByDescending(z => z.e.EnemiesInZone.Count)
                     .First().e.AdjacentZones
-                        .OrderBy(az => MathHelpers.CalculateDistance(myRobot.X, myRobot.Y, az.GetCenterPoint().X, az.GetCenterPoint().Y))
+                        .OrderBy(az => MathHelpers.CalculateDistance(_myRobot.X, _myRobot.Y, az.GetCenterPoint().X, az.GetCenterPoint().Y))
                         .First();
-                point = DestinationZone.GetRandomPoint();
+                point = _destinationZone.GetRandomPoint();
             }
-            DestinationPoint = MathHelpers.CorrectPointOnBorders(point, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width*2));
+            DestinationPoint = MathHelpers.CorrectPointOnBorders(point, _myRobot.BattleFieldWidth, _myRobot.BattleFieldHeight, (float)(_myRobot.Width*2));
             return DestinationPoint;
         }
 
         public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
         {
             var dest = GetDestination(enemies, currentTarget, false);
-            var angleToTurn = MathHelpers.TurnRobotToPoint(myRobot, dest);
+            var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
-            myRobot.SetTurnRight(angleToTurn);
-            double velocity = 0;
+            _myRobot.SetTurnRight(angleToTurn);
+            double velocity = Config.MaxDistancePerTurn / 4;
             if (Math.Abs(angleToTurn) < 180)
             {
-                velocity = UnsafeMovement || underAttack ? Rules.MAX_VELOCITY : Rules.MAX_VELOCITY / 2;
+                velocity = (UnsafeMovement || underAttack) ? Config.MaxDistancePerTurn / 2 : Config.MaxDistancePerTurn / 4;
             }
-            myRobot.SetAhead(velocity);
+            _myRobot.SetAhead(velocity);
         }
         private void ResetZonesData()
         {

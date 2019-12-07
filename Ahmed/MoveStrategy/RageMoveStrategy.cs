@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using Robocode;
 using Romanchuk.Helpers;
 
 namespace Romanchuk.MoveStrategy
 {
-
     public class RageMoveStrategy : IMoveStrategy
     {
-        private readonly AdvancedRobot myRobot;
+        private readonly AdvancedRobot _myRobot;
        
         public PointF DestinationPoint = new PointF(0,0);
 
@@ -16,7 +16,7 @@ namespace Romanchuk.MoveStrategy
 
         public RageMoveStrategy(AdvancedRobot robot)
         {
-            myRobot = robot;
+            _myRobot = robot;
         }
 
         public PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
@@ -29,23 +29,27 @@ namespace Romanchuk.MoveStrategy
             {
                 DestinationPoint = new PointF((float)currentTarget.GetFutureX(1), (float)currentTarget.GetFutureY(1));
             }
-            return MathHelpers.CorrectPointOnBorders(DestinationPoint, myRobot.BattleFieldWidth, myRobot.BattleFieldHeight, (float)(myRobot.Width * 2));
+            return MathHelpers.CorrectPointOnBorders(DestinationPoint, _myRobot.BattleFieldWidth, _myRobot.BattleFieldHeight, (float)(_myRobot.Width * 2));
         }
 
         public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
         {
             var dest = GetDestination(enemies, currentTarget, false);
-            var angleToTurn = MathHelpers.TurnRobotToPoint(myRobot, dest);
+            var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
-            myRobot.SetTurnRight(angleToTurn);
-            if (angleToTurn < 180)
+            _myRobot.SetTurnRight(angleToTurn);
+
+            var distance = Config.MaxDistancePerTurn;
+            if (Math.Abs(angleToTurn) > 40)
             {
-                myRobot.SetAhead(Rules.MAX_VELOCITY);
+                distance = Config.MaxDistancePerTurn / 2;
             }
-            else
+            else if (Math.Abs(angleToTurn) > 90)
             {
-                myRobot.SetAhead(Rules.MAX_VELOCITY / 3);
+                distance = Config.MaxDistancePerTurn / 4;
             }
+
+            _myRobot.SetAhead(distance);
         }
 
     }
