@@ -78,7 +78,11 @@ namespace Romanchuk.BattleStrategy
                 var safeToRage = _robot.Others > 1 &&
                                  _robot.Energy > 60 &&
                                  _robot.Energy - 30 > CurrentTarget.Instance.Energy;
-                if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage)
+                if (_robot.Energy <= 1)
+                {
+                    MoveStrategy = _moveStrategiesTuple.SafeZone;
+                }
+                else if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage)
                 {
                     MoveStrategy = _moveStrategiesTuple.Rage;
                 }
@@ -96,6 +100,25 @@ namespace Romanchuk.BattleStrategy
             MoveStrategy.Move(Enemies, CurrentTarget, UnderAttack);
         }
 
+        public void ActualEnemies()
+        {
+            if (!Enemies.Any())
+            {
+                return;
+            }
+            var actualEnemies = Enemies.Where(e => _robot.Time - e.Instance.Time < 12).ToArray();
+            if (actualEnemies.Any())
+            {
+                if (!actualEnemies.Contains(CurrentTarget))
+                {
+                    ChooseTarget(actualEnemies);
+                }
+            }
+            else
+            {
+                ResetTarget();
+            }
+        }
 
         public void ChooseTarget(IEnumerable<Enemy> enemies)
         {
@@ -157,6 +180,19 @@ namespace Romanchuk.BattleStrategy
 
         public void Shoot()
         {
+            if (_robot.Others <= 2 && CurrentTarget != null)
+            {
+                double fX = CurrentTarget.GetFutureX((int)CurrentTarget.Instance.Velocity);
+                double fY = CurrentTarget.GetFutureY((int)CurrentTarget.Instance.Velocity);
+                double deg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, fX, fY);
+                var radarTurn = MathHelpers.TurnRightOptimalAngle(_robot.RadarHeading, deg);
+                _robot.SetTurnRadarRight(radarTurn + radarTurn > 0 ? 20 : -20);
+            }
+            else
+            {
+                _robot.SetTurnRadarRight(Rules.RADAR_TURN_RATE);
+            }
+            
             if (CurrentTarget == null)
             {
                 return;
@@ -253,19 +289,6 @@ namespace Romanchuk.BattleStrategy
             return .1;
         }
 
-        private void DirectionMove(double forwardAngleTurn, double velocity)
-        {
-            //if (Math.Abs(forwardAngleTurn) < 180)
-            //{
-                _robot.SetTurnRight(forwardAngleTurn);
-                _robot.SetAhead(velocity);
-                /*
-            }
-            else
-            {
-                _robot.SetTurnRight(180 - Math.Abs(forwardAngleTurn));
-                _robot.SetBack(velocity);
-            }*/
-        }
+        
     }
 }

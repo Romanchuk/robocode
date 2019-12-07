@@ -32,7 +32,7 @@ namespace Romanchuk.MoveStrategy.Class
                     {
                         enemiesThreat += -(BASE_THREAT * 1.5);
                     }
-                    else if (e.Instance.Energy < 20 && EnemiesInZone.Count > 1)
+                    else if (e.Instance.Energy < 20 && EnemiesInZone.Count <= 2)
                     {
                         enemiesThreat += -BASE_THREAT / 2;
                     }
@@ -51,7 +51,7 @@ namespace Romanchuk.MoveStrategy.Class
                 }
 
                 double adjacentZonesThreat = AdjacentZones.Select(z => (double)z.EnemiesInZone.Count)
-                    .Aggregate((c, r) => c * 0.1);
+                    .Aggregate((c, r) => c * 0.15);
 
                 return BaseThreatIndex + enemiesThreat + adjacentZonesThreat;
             }

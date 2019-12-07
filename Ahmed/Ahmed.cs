@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Collections.Generic;
 using Romanchuk.BattleStrategy;
-
 namespace Romanchuk
 {
     public class Ahmed : AdvancedRobot
@@ -39,9 +38,11 @@ namespace Romanchuk
 
                 // SetAllColors(Color.Black);
                 Out.WriteLine($"----------------------------");
-                SetTurnRadarRight(Rules.RADAR_TURN_RATE);
                 _battleStrategy.ChangeColor(ref colorIteration);
+
+                _battleStrategy.ActualEnemies();
                 _battleStrategy.Move();
+
                 _battleStrategy.Shoot();
 
                 Execute();
@@ -90,17 +91,5 @@ namespace Romanchuk
             _bulletHitEvents.Add(e);
         }
 
-        public override void OnPaint(IGraphics g)
-        {
-            /*
-            var pen = new Pen(Color.DeepPink);
-            g.DrawEllipse(pen, _destination.X, _destination.Y, 10, 10);
-            
-            foreach (var pt in points)
-            {
-                
-            }
-            */
-        }
     }
 }

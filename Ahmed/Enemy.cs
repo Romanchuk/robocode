@@ -6,11 +6,11 @@ namespace Romanchuk
 {
     public class Enemy
     {
-        public readonly Robot myRobot;
+        private readonly Robot _myRobot;
 
         public Enemy(Robot robot)
         {
-            myRobot = robot;
+            _myRobot = robot;
         }
 
 
@@ -57,14 +57,14 @@ namespace Romanchuk
             }
             Instance = e;
 
-            double absBearingDeg = (myRobot.Heading + e.Bearing);
+            double absBearingDeg = (_myRobot.Heading + e.Bearing);
             if (absBearingDeg < 0) absBearingDeg += 360;
 
             // yes, you use the _sine_ to get the X value because 0 deg is North
-            X = myRobot.X + Math.Sin(Utils.ToRadians(absBearingDeg)) * e.Distance;
+            X = _myRobot.X + Math.Sin(Utils.ToRadians(absBearingDeg)) * e.Distance;
 
             // yes, you use the _cosine_ to get the Y value because 0 deg is North
-            Y = myRobot.Y + Math.Cos(Utils.ToRadians(absBearingDeg)) * e.Distance;
+            Y = _myRobot.Y + Math.Cos(Utils.ToRadians(absBearingDeg)) * e.Distance;
         }
 
         public double GetFutureX(long momentOfTime)
@@ -78,8 +78,15 @@ namespace Romanchuk
             var xo = futureX - X;
             var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
             futureX += (xo > 0 ? 1 : -1) * bonusForDistance;
-            if (futureX < 0) { futureX = 0; }
-            if (futureX > myRobot.BattleFieldWidth) { futureX = myRobot.BattleFieldWidth; }
+            if (futureX < _myRobot.Width / 2)
+            {
+                futureX = _myRobot.Width / 2;
+            }
+            var maxX = _myRobot.BattleFieldWidth - _myRobot.Width / 2;
+            if (futureX > maxX)
+            {
+                futureX = maxX;
+            }
 
             return futureX;
         }
@@ -94,8 +101,16 @@ namespace Romanchuk
             var yo = futureY - Y;
             var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
             futureY += (yo > 0 ? 1 : -1) * bonusForDistance;
-            if (futureY < 0) { futureY = 0; }
-            if (futureY > myRobot.BattleFieldHeight) { futureY = myRobot.BattleFieldHeight; }
+            if (futureY < _myRobot.Width/2)
+            {
+                futureY = _myRobot.Width/2;
+            }
+
+            var maxY = _myRobot.BattleFieldHeight - _myRobot.Width / 2;
+            if (futureY > maxY)
+            {
+                futureY = maxY;
+            }
 
             return futureY;
         }
