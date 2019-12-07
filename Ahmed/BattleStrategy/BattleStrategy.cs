@@ -78,7 +78,10 @@ namespace Romanchuk.BattleStrategy
                 var safeToRage = _robot.Others > 1 &&
                                  _robot.Energy > 60 &&
                                  _robot.Energy - 30 > CurrentTarget.Instance.Energy;
-                if (_robot.Energy <= 1)
+                if (_robot.Energy < 5 &&
+                    _robot.Others > 1 &&
+                    Enemies.Count(e => e.Instance.Energy > _robot.Energy + 10) > 1
+                )
                 {
                     MoveStrategy = _moveStrategiesTuple.SafeZone;
                 }
