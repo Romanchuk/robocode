@@ -13,7 +13,7 @@ namespace Romanchuk.BattleStrategy
         void Move();
 
         void ActualEnemies();
-        void ChooseTarget(IEnumerable<Enemy> enemies);
+        void ChooseTarget(IEnumerable<Enemy> enemies, IEnumerable<HitRobotEvent> hitRobotEvents);
 
         void ResetTarget();
 
