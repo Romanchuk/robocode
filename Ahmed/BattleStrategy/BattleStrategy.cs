@@ -32,7 +32,7 @@ namespace Romanchuk.BattleStrategy
                 }
                 if (Enemies.Count() > 1)
                 {
-                    return _bulletHits.Any(b => b.Time >= _robot.Time - 3);
+                    return _bulletHits.Any(b => b.Time >= _robot.Time - 5);
                 } else
                 {
                     return _bulletHits.Count(b => b.Time >= _robot.Time - 5) > 1;
@@ -184,7 +184,7 @@ namespace Romanchuk.BattleStrategy
             var optimalTargets = new (Enemy e, double c)[selectedTargets.Length];
             for (var i = 0; i < selectedTargets.Length; i++)
             {
-                var totalCriteria = criteria.energy[i] + criteria.distance[i]*0.5 + criteria.gunTurnDiff[i]*0.7;
+                var totalCriteria = criteria.energy[i]*0.5 + criteria.distance[i] + criteria.gunTurnDiff[i]*0.5;
                 optimalTargets[i].e = selectedTargets[i];
                 optimalTargets[i].c = totalCriteria;
             }
@@ -228,6 +228,7 @@ namespace Romanchuk.BattleStrategy
             }
 
             double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
+                        
             long timeToHitEnemy = (long)(Math.Floor(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower)));
             _robot.Out.WriteLine("====== AIMING =======");
             double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
@@ -260,7 +261,7 @@ namespace Romanchuk.BattleStrategy
 
       
             
-            if (CurrentTarget.Instance.Distance > 600)
+            if (CurrentTarget.Instance.Distance > 700)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
@@ -314,6 +315,7 @@ namespace Romanchuk.BattleStrategy
 
         private double CalcBulletPower(double enemyEnergy, double enemyDistance)
         {
+            
             if (enemyEnergy - 2 > Rules.MAX_BULLET_POWER * 4 && _robot.Energy > Rules.MAX_BULLET_POWER * 3 && enemyDistance < 2 * _robot.Width)
             {
                 return Rules.MAX_BULLET_POWER;
