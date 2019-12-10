@@ -73,11 +73,11 @@ namespace Romanchuk
             {
                 throw new Exception("There is no target instance");
             }
-            var futureX = X + Math.Sin(Instance.HeadingRadians) * Instance.Velocity * (momentOfTime + (Instance.Velocity > 6 ? Instance.Velocity : 0));
+            var futureX = X + Math.Sin(Instance.HeadingRadians) * Instance.Velocity * momentOfTime;
 
             var xo = futureX - X;
-            var bonusForDistance = (Instance.Distance > 100 && Instance.Velocity > 6 ? Instance.Velocity : 0);
-            futureX += (xo > 0 ? 1 : -1) * bonusForDistance;
+            // var bonusForDistance = (Instance.Distance > 100 && Instance.Velocity > 6 ? Instance.Velocity : 0);
+            // futureX += (xo > 0 ? 1 : -1) * bonusForDistance;
             if (futureX < _myRobot.Width / 2)
             {
                 futureX = _myRobot.Width / 2;
@@ -95,12 +95,12 @@ namespace Romanchuk
         {
             if (Instance == null)
             {
-                throw new Exception("There is no target instance");
+                throw new Exception("There is no target instanЯe");
             }
-            var futureY = Y + Math.Cos(Instance.HeadingRadians) * Instance.Velocity * (momentOfTime + (Instance.Velocity > 6 ? Instance.Velocity : 0)); // TODO:
+            var futureY = Y + Math.Cos(Instance.HeadingRadians) * Instance.Velocity * momentOfTime; // TODO:
             var yo = futureY - Y;
-            var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
-            futureY += (yo > 0 ? 1 : -1) * bonusForDistance;
+            // var bonusForDistance = (Instance.Distance > 500 && Instance.Velocity > 4 ? Instance.Velocity : 0);
+            // futureY += (yo > 0 ? 1 : -1) * bonusForDistance;
             if (futureY < _myRobot.Width/2)
             {
                 futureY = _myRobot.Width/2;

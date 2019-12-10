@@ -28,25 +28,21 @@ namespace Romanchuk.MoveStrategy.Class
                 double enemiesThreat = 0;
                 foreach (var e in EnemiesInZone)
                 {
-                    if (e.Instance.Energy < 18 && EnemiesInZone.Count == 1)
+                    if (e.Instance.Energy < 10 && EnemiesInZone.Count == 1)
                     {
-                        enemiesThreat += -(BASE_THREAT * 1.5);
+                        enemiesThreat += 0;
                     }
                     else if (e.Instance.Energy < 20 && EnemiesInZone.Count <= 2)
-                    {
-                        enemiesThreat += -BASE_THREAT / 2;
-                    }
-                    else if (e.Instance.Energy < 30)
                     {
                         enemiesThreat += BASE_THREAT / 2;
                     }
                     else if (e.Instance.Energy < 40)
                     {
-                        enemiesThreat += BASE_THREAT;
+                        enemiesThreat += BASE_THREAT * 2;
                     }
                     else
                     {
-                        enemiesThreat += BASE_THREAT * 2;
+                        enemiesThreat += BASE_THREAT * 3;
                     }
                 }
 

@@ -228,15 +228,15 @@ namespace Romanchuk.BattleStrategy
             }
 
             double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
-            long timeToHitEnemy = (long)(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower));
+            long timeToHitEnemy = (long)(Math.Floor(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower)));
             _robot.Out.WriteLine("====== AIMING =======");
             double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
             double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
 
             double absDeg = 0;
-            if (MoveStrategy == _moveStrategiesTuple.Rage)
+            if (MoveStrategy == _moveStrategiesTuple.Rage && CurrentTarget.Instance.Distance < 160)
             {
-                absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
+                absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, CurrentTarget.X, CurrentTarget.Y);
             } else
             {
                 absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
@@ -258,14 +258,14 @@ namespace Romanchuk.BattleStrategy
             _robot.Out.WriteLine("====== SHOOTING =======");
             _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining:2}; Distance:  {CurrentTarget.Instance.Distance:2}; Gun Heat: {_robot.GunHeat}");
 
-            /*
-            if (MoveStrategy == _moveStrategiesTuple.Rage && Math.Abs(currentGunHeadingRemaining) > 0.3)
+      
+            
+            if (CurrentTarget.Instance.Distance > 600)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            */
-            if (CurrentTarget.Instance.Distance > 600)
+            if (MoveStrategy == _moveStrategiesTuple.SafeZone && CurrentTarget.Instance.Distance > 400 && CurrentTarget.Instance.Velocity != 0)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
