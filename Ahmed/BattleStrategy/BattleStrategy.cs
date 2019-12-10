@@ -92,7 +92,7 @@ namespace Romanchuk.BattleStrategy
                 var easyToKillSolo = _robot.Others == 1 &&
                                      _robot.Energy - 20 > CurrentTarget.Instance.Energy &&
                                     CurrentTarget.Instance.Distance < 300;
-                var toClose = _robot.Others == 1 &&
+                var tooClose = _robot.Others == 1 &&
                                      _robot.Energy - 10 > CurrentTarget.Instance.Energy &&
                                     CurrentTarget.Instance.Distance < 100;
                 var safeToRage = _robot.Others > 1 &&
@@ -101,7 +101,8 @@ namespace Romanchuk.BattleStrategy
                 if (SurviveMode && _robot.Others > 1) {
                     MoveStrategy = _moveStrategiesTuple.SafeZone;
                 }
-                else if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage)
+                else if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage || 
+                    VersusMode && tooClose)
                 {
                     MoveStrategy = _moveStrategiesTuple.Rage;
                 }
@@ -222,10 +223,7 @@ namespace Romanchuk.BattleStrategy
             {
                 return;
             }
-            if (_robot.Energy < 0.2)
-            {
-                return;
-            }
+            
 
             double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
                         
@@ -259,9 +257,17 @@ namespace Romanchuk.BattleStrategy
             _robot.Out.WriteLine("====== SHOOTING =======");
             _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining:2}; Distance:  {CurrentTarget.Instance.Distance:2}; Gun Heat: {_robot.GunHeat}");
 
-      
-            
+            if (_robot.Energy < 0.2)
+            {
+                return;
+            }
+
             if (CurrentTarget.Instance.Distance > 700)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (_robot.Others > 4 && CurrentTarget.Instance.Distance > 600 && CurrentTarget.Instance.Velocity >= Rules.MAX_VELOCITY)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
