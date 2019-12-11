@@ -133,13 +133,16 @@ namespace Romanchuk.MoveStrategy
             return DestinationPoint;
         }
 
-        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool beeingHit)
         {
             var dest = GetDestination(enemies, currentTarget, false);
             var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
             _myRobot.SetTurnRight(angleToTurn);
-            double velocity = UnsafeMovement || underAttack ? Config.MaxDistancePerTurn : Config.MaxDistancePerTurn / 4;
+            double velocity = UnsafeMovement || beeingHit ?
+                Config.MaxDistancePerTurn :
+                Config.MaxDistancePerTurn / 4;
+
             if (Math.Abs(angleToTurn) > 90)
             {
                 velocity = Config.MaxDistancePerTurn / 4;

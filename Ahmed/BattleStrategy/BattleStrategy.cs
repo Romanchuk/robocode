@@ -22,7 +22,7 @@ namespace Romanchuk.BattleStrategy
 
         private (IMoveStrategy SafeZone, IMoveStrategy Spiral, IMoveStrategy Rage) _moveStrategiesTuple;
         
-        bool UnderAttack
+        bool BeeingHit
         {
             get
             {
@@ -35,7 +35,7 @@ namespace Romanchuk.BattleStrategy
                     return _bulletHits.Any(b => b.Time >= _robot.Time - 5);
                 } else
                 {
-                    return _bulletHits.Count(b => b.Time >= _robot.Time - 5) > 1;
+                    return _bulletHits.Count(b => b.Time + 8 > _robot.Time) > 0;
                 }
                 
             }
@@ -93,15 +93,18 @@ namespace Romanchuk.BattleStrategy
                                      _robot.Energy - 20 > CurrentTarget.Instance.Energy &&
                                     CurrentTarget.Instance.Distance < 300;
                 var tooClose = _robot.Others == 1 &&
-                                     _robot.Energy - 10 > CurrentTarget.Instance.Energy &&
-                                    CurrentTarget.Instance.Distance < 100;
+                                     _robot.Energy > CurrentTarget.Instance.Energy &&
+                                    CurrentTarget.Instance.Distance < 130;
                 var safeToRage = _robot.Others > 1 &&
                                  _robot.Energy > 60 &&
                                  _robot.Energy - 30 > CurrentTarget.Instance.Energy;
                 if (SurviveMode && _robot.Others > 1) {
                     MoveStrategy = _moveStrategiesTuple.SafeZone;
                 }
-                else if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage || 
+                else if (
+                    MoveStrategy == _moveStrategiesTuple.Rage ||
+                    easyToKillSolo ||
+                    safeToRage || 
                     VersusMode && tooClose)
                 {
                     MoveStrategy = _moveStrategiesTuple.Rage;
@@ -117,7 +120,7 @@ namespace Romanchuk.BattleStrategy
             }
             _robot.Out.WriteLine("====== AIMING =======");
             _robot.Out.WriteLine($"MoveStrategy {MoveStrategy.GetType().Name}");
-            MoveStrategy.Move(Enemies, CurrentTarget, UnderAttack);
+            MoveStrategy.Move(Enemies, CurrentTarget, BeeingHit);
         }
 
         public void ActualEnemies()
@@ -209,9 +212,9 @@ namespace Romanchuk.BattleStrategy
             {
                 double fX = CurrentTarget.GetFutureX((int)CurrentTarget.Instance.Velocity);
                 double fY = CurrentTarget.GetFutureY((int)CurrentTarget.Instance.Velocity);
-                double deg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, fX, fY);
+                double deg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, CurrentTarget.X, CurrentTarget.Y);
                 var radarTurn = MathHelpers.TurnRightOptimalAngle(_robot.RadarHeading, deg);
-                _robot.SetTurnRadarRight(radarTurn + radarTurn > 0 ? 20 : -20);
+                _robot.SetTurnRadarRight(radarTurn + radarTurn > 0 ? 30 : -30);
             }
             else
             {
@@ -267,6 +270,12 @@ namespace Romanchuk.BattleStrategy
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
+            if (_robot.Energy < 20 && CurrentTarget.Instance.Distance > 300 && MoveStrategy == _moveStrategiesTuple.Rage)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+
             if (_robot.Others > 4 && CurrentTarget.Instance.Distance > 600 && CurrentTarget.Instance.Velocity >= Rules.MAX_VELOCITY)
             {
                 _robot.Out.WriteLine("Skip shoot");

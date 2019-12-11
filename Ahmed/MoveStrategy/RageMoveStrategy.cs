@@ -37,7 +37,7 @@ namespace Romanchuk.MoveStrategy
             return DestinationPoint;
         }
 
-        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool beeingHit)
         {
             var dest = GetDestination(enemies, currentTarget, false);
             var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
