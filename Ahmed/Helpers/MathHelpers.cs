@@ -8,7 +8,7 @@ namespace Romanchuk.Helpers
     public static class MathHelpers
     {
         public static double CalculateBulletSpeed(double firePower)
-        { 
+        {
             return 20 - firePower * 3;
         }
 

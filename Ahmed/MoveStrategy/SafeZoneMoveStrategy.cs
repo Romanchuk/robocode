@@ -124,7 +124,8 @@ namespace Romanchuk.MoveStrategy
                 _destinationZone = zones
                     .OrderByDescending(z => z.e.EnemiesInZone.Count)
                     .First().e.AdjacentZones
-                        .OrderBy(az => MathHelpers.CalculateDistance(_myRobot.X, _myRobot.Y, az.GetCenterPoint().X, az.GetCenterPoint().Y))
+                        .OrderBy(az => az.ThreatIndex)
+                        .ThenBy(az => MathHelpers.CalculateDistance(_myRobot.X, _myRobot.Y, az.GetCenterPoint().X, az.GetCenterPoint().Y))
                         .First();
                 point = _destinationZone.GetRandomPoint();
             }
@@ -132,16 +133,19 @@ namespace Romanchuk.MoveStrategy
             return DestinationPoint;
         }
 
-        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool beeingHit)
         {
             var dest = GetDestination(enemies, currentTarget, false);
             var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
             _myRobot.SetTurnRight(angleToTurn);
-            double velocity = Config.MaxDistancePerTurn / 4;
-            if (Math.Abs(angleToTurn) < 180)
+            double velocity = UnsafeMovement || beeingHit ?
+                Config.MaxDistancePerTurn :
+                Config.MaxDistancePerTurn / 4;
+
+            if (Math.Abs(angleToTurn) > 90)
             {
-                velocity = (UnsafeMovement || underAttack) ? Config.MaxDistancePerTurn / 2 : Config.MaxDistancePerTurn / 4;
+                velocity = Config.MaxDistancePerTurn / 4;
             }
             _myRobot.SetAhead(velocity);
         }

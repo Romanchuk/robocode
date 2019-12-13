@@ -19,6 +19,9 @@ namespace Romanchuk.MoveStrategy
 
         private const float MaxRadius = 280;
         private float CurrentMoveRadius = MaxRadius;
+        private bool ShouldChangeDirection;
+
+        private long _lastForceDirectionChange;
 
         public SpiralMoveStrategy(AdvancedRobot robot)
         {
@@ -35,9 +38,13 @@ namespace Romanchuk.MoveStrategy
         {
             if (currentTarget == null)
             {
-                DestinationPoint = _centerPoint;
+                // DestinationPoint = _centerPoint;
                 return DestinationPoint;
             }
+
+            ShouldChangeDirection = currentTarget.Instance.Distance > 100 && forceChangeDirection &&
+                                (_lastForceDirectionChange + 8) < _myRobot.Time;
+
             var currentPoint = new PointF((float)_myRobot.X, (float)_myRobot.Y);
             var targetPoint = new PointF((float)currentTarget.X, (float)currentTarget.Y);
 
@@ -45,12 +52,26 @@ namespace Romanchuk.MoveStrategy
 
             var achievedPoint = AchievedPoint(DestinationPoint, currentPoint, allowedDiff);
 
-            if (DestinationPoint == _centerPoint || achievedPoint)
+            if (DestinationPoint == _centerPoint || achievedPoint || ShouldChangeDirection)
             {
                 var points = GetRoundPoints(targetPoint);
-                
-                var p = points
-                    .FirstOrDefault(pp => !AchievedPoint(pp, currentPoint, allowedDiff));
+
+                PointF p;
+                if (ShouldChangeDirection)
+                {
+                    _lastForceDirectionChange = _myRobot.Time;
+                    var pts = points
+                        .Where(pp => !AchievedPoint(pp, currentPoint, allowedDiff * 2))
+                        .ToArray();
+                    var r = new Random();
+                    var ind = r.Next(0, pts.Length - 1);
+                    p = pts[ind];
+                } else
+                {
+                    p = points
+                        .FirstOrDefault(pp => !AchievedPoint(pp, currentPoint, allowedDiff));
+                }
+
                 var newPoint = p.IsEmpty ? points.First() : p;
 
                 DestinationPoint = MathHelpers.CorrectPointOnBorders(newPoint, _myRobot.BattleFieldWidth,
@@ -67,22 +88,24 @@ namespace Romanchuk.MoveStrategy
 
         public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool underAttack)
         {
-            var dest = GetDestination(enemies, currentTarget, false);
+            var dest = GetDestination(enemies, currentTarget, currentTarget?.JustShooted ?? false || underAttack);
             var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);
 
+            double direction = 1;
+
+            if (Math.Abs(angleToTurn) >= 120)
+            {
+                angleToTurn = 180 - angleToTurn;
+                direction = -1;
+            }
+            var r = new Random();
+            
             _myRobot.SetTurnRight(angleToTurn);
-            if (Math.Abs(angleToTurn) < 40)
-            {
-                _myRobot.SetAhead(Config.MaxDistancePerTurn);
-            }
-            else if (Math.Abs(angleToTurn) < 90)
-            {
-                _myRobot.SetAhead(Config.MaxDistancePerTurn / 2);
-            }
-            else
-            {
-                _myRobot.SetAhead(Config.MaxDistancePerTurn / 4);
-            }
+            _myRobot.SetAhead(
+                (ShouldChangeDirection ?
+                    r.Next((int)Config.MaxDistancePerTurn/2, (int)Config.MaxDistancePerTurn) :
+                    Config.MaxDistancePerTurn)
+                * direction);
         }
 
         private IEnumerable<PointF> GetRoundPoints(PointF target)

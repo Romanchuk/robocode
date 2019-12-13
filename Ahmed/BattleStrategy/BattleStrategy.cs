@@ -12,6 +12,7 @@ namespace Romanchuk.BattleStrategy
     public class BattleStrategy<T> : IBattleStrategy where T : AdvancedRobot
     {
         public Enemy CurrentTarget { get; private set; }
+        public bool VersusMode { get; private set; }
 
         public IEnumerable<Enemy> Enemies = new Enemy[]{};
         public IMoveStrategy MoveStrategy;
@@ -21,7 +22,7 @@ namespace Romanchuk.BattleStrategy
 
         private (IMoveStrategy SafeZone, IMoveStrategy Spiral, IMoveStrategy Rage) _moveStrategiesTuple;
         
-        bool UnderAttack
+        bool BeeingHit
         {
             get
             {
@@ -29,7 +30,22 @@ namespace Romanchuk.BattleStrategy
                 {
                     return false;
                 }
-                return _bulletHits.Any(b => b.Time >= _robot.Time - 3);
+                if (Enemies.Count() > 1)
+                {
+                    return _bulletHits.Any(b => b.Time >= _robot.Time - 5);
+                } else
+                {
+                    return _bulletHits.Count(b => b.Time + 8 > _robot.Time) > 0;
+                }
+                
+            }
+        }
+
+        bool SurviveMode
+        {
+            get
+            {
+                return _robot.Energy < 10 && Enemies.Count() > 1 && Enemies.Any(e => e.Instance.Energy > _robot.Energy + 20);
             }
         }
 
@@ -43,6 +59,7 @@ namespace Romanchuk.BattleStrategy
             _moveStrategiesTuple.SafeZone = new SafeZoneMoveStrategy(_robot);
             _moveStrategiesTuple.Spiral = new SpiralMoveStrategy(_robot);
             _moveStrategiesTuple.Rage = new RageMoveStrategy(_robot);
+            VersusMode = _robot.Others == 1;
         }
 
         public void ChangeColor(ref int colorIteration)
@@ -73,19 +90,22 @@ namespace Romanchuk.BattleStrategy
             if (_robot.Others <= 2 && CurrentTarget != null)
             {
                 var easyToKillSolo = _robot.Others == 1 &&
-                                     _robot.Energy - 10 > CurrentTarget.Instance.Energy &&
+                                     _robot.Energy - 20 > CurrentTarget.Instance.Energy &&
                                     CurrentTarget.Instance.Distance < 300;
+                var tooClose = _robot.Others == 1 &&
+                                     _robot.Energy > CurrentTarget.Instance.Energy &&
+                                    CurrentTarget.Instance.Distance < 130;
                 var safeToRage = _robot.Others > 1 &&
                                  _robot.Energy > 60 &&
                                  _robot.Energy - 30 > CurrentTarget.Instance.Energy;
-                if (_robot.Energy < 5 &&
-                    _robot.Others > 1 &&
-                    Enemies.Count(e => e.Instance.Energy > _robot.Energy + 10) > 1
-                )
-                {
+                if (SurviveMode && _robot.Others > 1) {
                     MoveStrategy = _moveStrategiesTuple.SafeZone;
                 }
-                else if (MoveStrategy == _moveStrategiesTuple.Rage || easyToKillSolo || safeToRage)
+                else if (
+                    MoveStrategy == _moveStrategiesTuple.Rage ||
+                    easyToKillSolo ||
+                    safeToRage || 
+                    VersusMode && tooClose)
                 {
                     MoveStrategy = _moveStrategiesTuple.Rage;
                 }
@@ -100,7 +120,7 @@ namespace Romanchuk.BattleStrategy
             }
             _robot.Out.WriteLine("====== AIMING =======");
             _robot.Out.WriteLine($"MoveStrategy {MoveStrategy.GetType().Name}");
-            MoveStrategy.Move(Enemies, CurrentTarget, UnderAttack);
+            MoveStrategy.Move(Enemies, CurrentTarget, BeeingHit);
         }
 
         public void ActualEnemies()
@@ -123,7 +143,7 @@ namespace Romanchuk.BattleStrategy
             }
         }
 
-        public void ChooseTarget(IEnumerable<Enemy> enemies)
+        public void ChooseTarget(IEnumerable<Enemy> enemies, IEnumerable<HitRobotEvent> hitRobotEvents = null)
         {
             Enemies = enemies ?? throw new ArgumentNullException(nameof(enemies));
             if (CurrentTarget != null)
@@ -141,6 +161,11 @@ namespace Romanchuk.BattleStrategy
             var closestEnemies = enemies.Where(e => (e.Instance.Distance - minDistance) < 200);
             var minEnergy = closestEnemies.Min(e => e.Instance.Energy);
             var selectedTargets = closestEnemies.Where(e => (e.Instance.Energy - minEnergy) < 10).ToArray();
+            if (!selectedTargets.Any())
+            {
+                ResetTarget();
+                return;
+            }
             var selectedTargetsGunDiff = selectedTargets.Select(e =>
             {
                 double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, e.X, e.Y);
@@ -163,7 +188,7 @@ namespace Romanchuk.BattleStrategy
             var optimalTargets = new (Enemy e, double c)[selectedTargets.Length];
             for (var i = 0; i < selectedTargets.Length; i++)
             {
-                var totalCriteria = criteria.energy[i] + criteria.distance[i] + criteria.gunTurnDiff[i]*0.2;
+                var totalCriteria = criteria.energy[i]*0.5 + criteria.distance[i] + criteria.gunTurnDiff[i]*0.5;
                 optimalTargets[i].e = selectedTargets[i];
                 optimalTargets[i].c = totalCriteria;
             }
@@ -183,75 +208,114 @@ namespace Romanchuk.BattleStrategy
 
         public void Shoot()
         {
-            if (_robot.Others <= 2 && CurrentTarget != null)
+            if (_robot.Others < 2 && CurrentTarget != null)
             {
                 double fX = CurrentTarget.GetFutureX((int)CurrentTarget.Instance.Velocity);
                 double fY = CurrentTarget.GetFutureY((int)CurrentTarget.Instance.Velocity);
-                double deg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, fX, fY);
+                double deg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, CurrentTarget.X, CurrentTarget.Y);
                 var radarTurn = MathHelpers.TurnRightOptimalAngle(_robot.RadarHeading, deg);
-                _robot.SetTurnRadarRight(radarTurn + radarTurn > 0 ? 20 : -20);
+                _robot.SetTurnRadarRight(radarTurn + radarTurn > 0 ? 30 : -30);
             }
             else
             {
                 _robot.SetTurnRadarRight(Rules.RADAR_TURN_RATE);
             }
             
+            _robot.Out.WriteLine($"Current Target: {CurrentTarget?.Name}");
             if (CurrentTarget == null)
             {
                 return;
             }
+            
+
+            double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
+                        
+            long timeToHitEnemy = (long)(Math.Floor(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower)));
+            _robot.Out.WriteLine("====== AIMING =======");
+            double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
+            double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
+
+            double absDeg = 0;
+            if (MoveStrategy == _moveStrategiesTuple.Rage && CurrentTarget.Instance.Distance < 160)
+            {
+                absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, CurrentTarget.X, CurrentTarget.Y);
+            } else
+            {
+                absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
+            }
+            
+
+
+            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg);
+
+            var currentGunHeadingRemaining = _robot.GunTurnRemaining;
+
+            _robot.Out.WriteLine($"POSITION My: {_robot.X:0}, {_robot.Y:0}; Enemy: {futureX:0}, {futureY:0}");
+            _robot.Out.WriteLine($"Gun heading: {_robot.GunHeading:2}; Abs bearing: {absDeg:2}; Gun turn deg: {angleToTurn:2}");
+
+
+            _robot.SetTurnGunRight(angleToTurn);
+
+
+            _robot.Out.WriteLine("====== SHOOTING =======");
+            _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining:2}; Distance:  {CurrentTarget.Instance.Distance:2}; Gun Heat: {_robot.GunHeat}");
+
             if (_robot.Energy < 0.2)
             {
                 return;
             }
 
-            double bulletPower = CalcBulletPower(CurrentTarget.Instance.Energy, CurrentTarget.Instance.Distance);
-            long timeToHitEnemy = (long)(CurrentTarget.Instance.Distance / MathHelpers.CalculateBulletSpeed(bulletPower));
-            _robot.Out.WriteLine("====== AIMING =======");
-            double futureX = CurrentTarget.GetFutureX(timeToHitEnemy);
-            double futureY = CurrentTarget.GetFutureY(timeToHitEnemy);
-
-            double absDeg = MathHelpers.AbsoluteBearingDegrees(_robot.X, _robot.Y, futureX, futureY);
-            var angleToTurn = MathHelpers.TurnRightOptimalAngle(_robot.GunHeading, absDeg);
-
-            var currentGunHeadingRemaining = _robot.GunTurnRemaining;
-
-            _robot.Out.WriteLine($"POSITION My: {_robot.X}, {_robot.Y}; Enemy: {futureX}, {futureY}");
-            _robot.Out.WriteLine($"Gun heading: {_robot.GunHeading}; Abs bearing: {absDeg}; Gun turn deg: {angleToTurn}");
-
-
-            _robot.SetTurnGunRight(angleToTurn);
-
-            
-            _robot.Out.WriteLine("====== SHOOTING =======");
-            _robot.Out.WriteLine($"Turn Gun:  {currentGunHeadingRemaining}; Distance:  {CurrentTarget.Instance.Distance}; Gun Heat: {_robot.GunHeat}");
-            
-            if (CurrentTarget.Instance.Distance > 500 && Math.Abs(currentGunHeadingRemaining) > 0.2)
+            if (CurrentTarget.Instance.Distance > 700)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            if (CurrentTarget.Instance.Distance > 300 && Math.Abs(currentGunHeadingRemaining) > 0.5)
+            if (_robot.Energy < 20 && CurrentTarget.Instance.Distance > 300 && MoveStrategy == _moveStrategiesTuple.Rage)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            if (CurrentTarget.Instance.Distance > 200 && Math.Abs(currentGunHeadingRemaining) > 0.7)
+
+            if (_robot.Others > 4 && CurrentTarget.Instance.Distance > 600 && CurrentTarget.Instance.Velocity >= Rules.MAX_VELOCITY)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            if (CurrentTarget.Instance.Distance > 100 && Math.Abs(currentGunHeadingRemaining) > 1)
+            if (MoveStrategy == _moveStrategiesTuple.SafeZone && CurrentTarget.Instance.Distance > 400 && CurrentTarget.Instance.Velocity != 0)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            if (CurrentTarget.Instance.Distance > 0 && Math.Abs(currentGunHeadingRemaining) > 2)
+            if (CurrentTarget.Instance.Distance > 500 && Math.Abs(currentGunHeadingRemaining) > 0.1)
             {
                 _robot.Out.WriteLine("Skip shoot");
                 return;
             }
-            
+            if (CurrentTarget.Instance.Distance > 300 && Math.Abs(currentGunHeadingRemaining) > 0.3)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 200 && Math.Abs(currentGunHeadingRemaining) > 0.5)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 100 && Math.Abs(currentGunHeadingRemaining) > 0.8)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+            if (CurrentTarget.Instance.Distance > 0 && Math.Abs(currentGunHeadingRemaining) > 1.8)
+            {
+                _robot.Out.WriteLine("Skip shoot");
+                return;
+            }
+
+            if (SurviveMode && CurrentTarget.Instance.Distance > 400)
+            {
+                return;
+            }
             if (_robot.GunHeat == 0)
             {
                 _robot.SetFire(bulletPower);
@@ -263,8 +327,10 @@ namespace Romanchuk.BattleStrategy
         }
 
 
+
         private double CalcBulletPower(double enemyEnergy, double enemyDistance)
         {
+            
             if (enemyEnergy - 2 > Rules.MAX_BULLET_POWER * 4 && _robot.Energy > Rules.MAX_BULLET_POWER * 3 && enemyDistance < 2 * _robot.Width)
             {
                 return Rules.MAX_BULLET_POWER;

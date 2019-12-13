@@ -21,18 +21,23 @@ namespace Romanchuk.MoveStrategy
 
         public PointF GetDestination(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
         {
-            if (currentTarget.Instance.Distance < 200)
+            if (currentTarget.Instance.Distance < 300)
             {
                 DestinationPoint = new PointF((float)currentTarget.X, (float)currentTarget.Y);
             }
             else
             {
-                DestinationPoint = new PointF((float)currentTarget.GetFutureX(1), (float)currentTarget.GetFutureY(1));
+                var futureX = (float)currentTarget.GetFutureX(2);
+                var futureY = (float)currentTarget.GetFutureY(2);
+                DestinationPoint = new PointF(
+                    (float)(futureX <= 0 || futureX >= _myRobot.BattleFieldWidth ? currentTarget.X : futureX),
+                    (float)(futureY <= 0 || futureY >= _myRobot.BattleFieldHeight ? currentTarget.X : futureX)
+                );
             }
-            return MathHelpers.CorrectPointOnBorders(DestinationPoint, _myRobot.BattleFieldWidth, _myRobot.BattleFieldHeight, (float)(_myRobot.Width * 2));
+            return DestinationPoint;
         }
 
-        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool forceChangeDirection)
+        public void Move(IEnumerable<Enemy> enemies, Enemy currentTarget, bool beeingHit)
         {
             var dest = GetDestination(enemies, currentTarget, false);
             var angleToTurn = MathHelpers.TurnRobotToPoint(_myRobot, dest);

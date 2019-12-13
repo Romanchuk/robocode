@@ -11,6 +11,7 @@ namespace Romanchuk
         private readonly IBattleStrategy _battleStrategy;
 
         private List<HitByBulletEvent> _bulletHitEvents;
+        private List<HitRobotEvent> _hitRobotEvents;
 
         public Ahmed()
         {
@@ -24,6 +25,7 @@ namespace Romanchuk
 
             _enemies = new Dictionary<string, Enemy>();
             _bulletHitEvents = new List<HitByBulletEvent>();
+            _hitRobotEvents = new List<HitRobotEvent>();
             _battleStrategy.Init();
             _battleStrategy.AttachHitByBulletEvents(_bulletHitEvents);
             _battleStrategy.ResetTarget();
@@ -34,9 +36,6 @@ namespace Romanchuk
 
             while (true)
             {
-
-
-                // SetAllColors(Color.Black);
                 Out.WriteLine($"----------------------------");
                 _battleStrategy.ChangeColor(ref colorIteration);
 
@@ -70,7 +69,8 @@ namespace Romanchuk
             _battleStrategy.ChooseTarget(
                 _enemies
                     .Take(Others)
-                    .Select(e => e.Value)
+                    .Select(e => e.Value),
+                _hitRobotEvents
             );
         }
 
@@ -89,6 +89,11 @@ namespace Romanchuk
         public override void OnHitByBullet(HitByBulletEvent e)
         {
             _bulletHitEvents.Add(e);
+        }
+
+        public override void OnHitRobot(HitRobotEvent e)
+        {
+            _hitRobotEvents.Add(e);
         }
 
     }
